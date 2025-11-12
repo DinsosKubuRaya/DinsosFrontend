@@ -113,8 +113,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       await authAPI.logout();
+      toast.success("Logout Berhasil!");
     } catch (error) {
       console.error("Logout error:", error);
+      toast.error("Logout Gagal", {
+        description: error instanceof Error ? error.message : "Logout Gagal",
+      });
     } finally {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
