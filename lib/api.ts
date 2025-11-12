@@ -1,4 +1,5 @@
 import axios, { AxiosResponse } from 'axios';
+import { User } from '@/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
@@ -75,5 +76,151 @@ function extractPaginatedData<T>(
     return response.data;
 }
 
-    
+export const authAPI = {
+login: async (email: string, password: string) => {
+    const response = await api.post<ApiResponse<{ token: string; user: unknown }>>('/auth/login', {
+    email,
+    password,
+    });
+    return extractData(response);
+},
 
+logout: async () => {
+    const response = await api.post<ApiResponse<null>>('/auth/logout');
+    return response.data;
+},
+
+me: async () => {
+    const response = await api.get<ApiResponse<unknown>>('/auth/me');
+    return extractData(response);
+},
+};
+
+// Category API
+export const categoryAPI = {
+getAll: async () => {
+    const response = await api.get<ApiResponse<unknown[]>>('/categories');
+    return extractData(response);
+},
+
+create: async (data: { name: string; description?: string; parent_id?: number }) => {
+    const response = await api.post<ApiResponse<unknown>>('/categories', data);
+    return extractData(response);
+},
+
+update: async (id: number, data: { name: string; description?: string; parent_id?: number }) => {
+    const response = await api.put<ApiResponse<unknown>>(`/categories/${id}`, data);
+    return extractData(response);
+},
+
+delete: async (id: number) => {
+    const response = await api.delete<ApiResponse<null>>(`/categories/${id}`);
+    return response.data;
+},
+};
+
+// Document API
+export const documentAPI = {
+getAll: async (params?: {
+    page?: number;
+    per_page?: number;
+    search?: string;
+    category_id?: string | number;
+    start_date?: string;
+    end_date?: string;
+}) => {
+    const response = await api.get<PaginatedApiResponse<unknown>>('/documents', { params });
+    return extractPaginatedData(response);
+},
+
+getById: async (id: number) => {
+    const response = await api.get<ApiResponse<unknown>>(`/documents/${id}`);
+    return extractData(response);
+},
+
+create: async (formData: FormData) => {
+    const response = await api.post<ApiResponse<unknown>>('/documents', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return extractData(response);
+},
+
+update: async (
+    id: number,
+    data: {
+    title: string;
+    description?: string;
+    document_date: string;
+    category_id: string | number;
+    status?: string;
+    }
+) => {
+    const response = await api.put<ApiResponse<unknown>>(`/documents/${id}`, data);
+    return extractData(response);
+},
+
+delete: async (id: number) => {
+    const response = await api.delete<ApiResponse<null>>(`/documents/${id}`);
+    return response.data;
+},
+
+download: async (id: number) => {
+    return api.get(`/documents/${id}/download`, {
+    responseType: 'blob',
+    });
+},
+};
+
+// Activity Log API
+export const activityLogAPI = {
+getAll: async (params?: {
+    page?: number;
+    per_page?: number;
+    user_id?: number;
+    document_id?: number;
+    action?: string;
+    start_date?: string;
+    end_date?: string;
+}) => {
+    const response = await api.get<PaginatedApiResponse<unknown>>('/activity-logs', { params });
+    return extractPaginatedData(response);
+},
+};
+
+// User API (Admin)
+export const userAPI = {
+getAll: async () => {
+    const response = await api.get<ApiResponse<unknown>>('/users');
+    return extractData(response);
+},
+
+create: async (data: {
+    name: string;
+    email: string;
+    password: string;
+    role: 'admin' | 'staff';
+    is_active?: boolean;
+}) => {
+    const response = await api.post<ApiResponse<unknown>>('/users', data);
+    return extractData(response);
+},
+
+update: async (
+    id: number,
+    data: {
+    name: string;
+    email: string;
+    password?: string;
+    role: 'admin' | 'staff';
+    is_active: boolean;
+    }
+) => {
+    const response = await api.put<ApiResponse<unknown>>(`/users/${id}`, data);
+    return extractData(response);
+},
+
+delete: async (id: number) => {
+    const response = await api.delete<ApiResponse<null>>(`/users/${id}`);
+    return response.data;
+},
+};
