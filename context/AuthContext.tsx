@@ -56,8 +56,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem("token", response.token);
       localStorage.setItem("user", JSON.stringify(response.user));
       setUser(response.user);
-
-      router.push("/dashboard");
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 1000);
     } catch (error: unknown) {
       console.error("Login error:", error);
       const errorMessage = getErrorMessage(error);
@@ -78,11 +79,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem("token", response.token);
       localStorage.setItem("user", JSON.stringify(response.user));
       setUser(response.user);
-
-      toast.success("Registrasi Berhasil!", {
-        description: "Silahkan login dengan akun yang sudah di daftarkan.",
-      });
-      router.push("/login");
+      setTimeout(() => {
+        router.push("/login");
+      }, 1000);
     } catch (error: unknown) {
       console.error("Registration error:", error);
       const errorMessage = getErrorMessage(error);

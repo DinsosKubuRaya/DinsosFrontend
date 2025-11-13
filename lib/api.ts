@@ -1,6 +1,7 @@
 import axios, { AxiosError, AxiosResponse } from 'axios';
 import { Document, ActivityLog, User, Category } from '@/types'; 
 
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
 interface ApiResponse<T> {
@@ -163,9 +164,9 @@ export const documentAPI = {
         start_date?: string;
         end_date?: string;
     }) => {
-        // Backend return { documents: [...] } bukan format paginated standard
+        // Backend return DocumentsApiResponse
         const response = await api.get<DocumentsApiResponse>('/documents', { params });
-        return response.data; // Return langsung { documents: [...] }
+        return response.data; 
     },
 
     getById: async (id: string) => { 
@@ -203,8 +204,20 @@ export const documentAPI = {
         return api.get(`/documents/${id}/download`, {
             responseType: 'blob',
         });
+        
     },
+    
 };
+
+// upload document function
+export const uploadDocument = (formData: FormData) => {
+  return api.post('/documents', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data', 
+    },
+  });
+};
+
 
 // Activity Log API
 export const activityLogAPI = {
