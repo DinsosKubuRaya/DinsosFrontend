@@ -1,20 +1,20 @@
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 export function useProtectedRoute(requireAdmin = false) {
-const { user, loading, isAdmin } = useAuth();
-const router = useRouter();
+  const { user, loading, isAdmin } = useAuth();
+  const router = useRouter();
 
-useEffect(() => {
+  useEffect(() => {
     if (!loading) {
-        if (!user) {
-        router.push('/login');
-    } else if (requireAdmin && !isAdmin) {
-        router.push('/dashboard');
+      if (!user) {
+        router.push("/login");
+      } else if (requireAdmin && !isAdmin) {
+        router.push("/dashboard");
+      }
     }
-    }
-}, [user, loading, isAdmin, requireAdmin, router]);
+  }, [user, loading, isAdmin, requireAdmin, router]);
 
-return { user, loading, isAdmin };
+  return { user, loading, isAdmin };
 }

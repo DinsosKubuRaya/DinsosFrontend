@@ -1,19 +1,23 @@
 export type User = {
-  ID: number; 
+  ID: number;
   name: string;
-  email: string;
+  username: string;
   role: string;
+  created_at?: string;
+  updated_at?: string;
 };
 
 export type Document = {
-  id: number;
-  title: string;
-  description: string;
-  category: string;
-  fileURL: string;
-  uploaderID: number;
-  createdAt: string;
-  updatedAt: string;
+  id: number; 
+  sender: string;
+  file_name: string;
+  subject: string;
+  letter_type: 'masuk' | 'keluar';
+  user_id?: number; 
+  user?: User;
+  user_name?: string;
+  created_at: string;
+  updated_at: string;
 };
 
 export interface Category {

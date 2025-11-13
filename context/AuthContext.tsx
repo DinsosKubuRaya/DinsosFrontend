@@ -1,14 +1,16 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { User } from "@/types";
-import { authAPI, getErrorMessage } from "@/lib/api";
+import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { User } from "@/types";
+import { authAPI, getErrorMessage } from "@/lib/api";
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  isAdmin: boolean;
   login: (username: string, password: string) => Promise<void>;
   register: (data: {
     name: string;
@@ -17,7 +19,6 @@ interface AuthContextType {
     password_confirmation: string;
   }) => Promise<void>;
   logout: () => Promise<void>;
-  isAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,41 +29,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (token) {
-        // API AUTH /auth/me
-        const userData = await authAPI.me();
-        setUser(userData);
-      }
-    } catch (error) {
-      console.error("Auth check failed:", error);
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-    } finally {
+    const token = Cookies.get("token");
+    if (token) {
+      authAPI
+        .me()
+        .then((data) => setUser(data))
+        .catch(() => {
+          Cookies.remove("token");
+          setUser(null);
+        })
+        .finally(() => setLoading(false));
+    } else {
       setLoading(false);
     }
-  };
+  }, []);
 
   const login = async (username: string, password: string) => {
     try {
-      // API
-      const response = await authAPI.login(username, password);
-
-      localStorage.setItem("token", response.token);
-      localStorage.setItem("user", JSON.stringify(response.user));
-      setUser(response.user);
-      setTimeout(() => {
-        router.push("/dashboard");
-      }, 1000);
-    } catch (error: unknown) {
-      console.error("Login error:", error);
-      const errorMessage = getErrorMessage(error);
-      throw new Error(errorMessage);
+      const res = await authAPI.login(username, password);
+      Cookies.set("token", res.token, { expires: 7 }); // ✅ simpan token di cookies
+      setUser(res.user);
+      toast.success("Login Berhasil!");
+      router.push("/dashboard");
+    } catch (err: unknown) {
+      const msg = getErrorMessage(err);
+      toast.error(msg);
+      throw new Error(msg);
     }
   };
 
@@ -73,36 +65,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     password_confirmation: string;
   }) => {
     try {
-      // PANGGIL API REGISTRASI
-      const response = await authAPI.register(data);
-
-      localStorage.setItem("token", response.token);
-      localStorage.setItem("user", JSON.stringify(response.user));
-      setUser(response.user);
-      setTimeout(() => {
-        router.push("/login");
-      }, 1000);
-    } catch (error: unknown) {
-      console.error("Registration error:", error);
-      const errorMessage = getErrorMessage(error);
-      throw new Error(errorMessage);
+      await authAPI.register(data);
+      toast.success("Registrasi Berhasil", {
+        description: "Silakan login dengan akun baru Anda.",
+      });
+      router.push("/login");
+    } catch (err: unknown) {
+      const msg = getErrorMessage(err);
+      toast.error(msg);
+      throw new Error(msg);
     }
   };
 
   const logout = async () => {
     try {
       await authAPI.logout();
-      toast.success("Logout Berhasil!");
-    } catch (error) {
-      console.error("Logout error:", error);
-      toast.error("Logout Gagal", {
-        description: error instanceof Error ? error.message : "Logout Gagal",
-      });
+    } catch (err) {
+      console.error("Logout error:", err);
     } finally {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
+      Cookies.remove("token");
       setUser(null);
       router.push("/login");
+      toast.success("Logout berhasil!");
     }
   };
 
@@ -118,9 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  return ctx;
 }

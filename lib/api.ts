@@ -1,14 +1,21 @@
 import axios, { AxiosError, AxiosResponse } from 'axios';
-import { Document, ActivityLog, User, Category } from '@/types'; 
+import { Document, User, Category } from '@/types'; 
 
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+
+interface AuthResponseData {
+    token: string;
+    user: User;
+    message?: string; 
+}
 
 interface ApiResponse<T> {
     status?: 'success' | 'error';
     message?: string;
     data?: T; 
     users?: T; 
+    user?: T; 
     error?: string; 
     errors?: Record<string, string[]>;
 }
@@ -23,22 +30,15 @@ interface PaginatedApiResponse<T> {
     total: number;
 }
 
-// Response khusus dari backend Golang untuk documents
 interface DocumentsApiResponse {
     documents: Document[];
 }
 
-// Response untuk create document
 interface CreateDocumentResponse {
     message: string;
     file_id: string;
     file_name: string;
     document: Document;
-}
-
-interface AuthResponseData {
-    token: string;
-    user: User;
 }
 
 export const api = axios.create({
@@ -76,12 +76,8 @@ api.interceptors.response.use(
     }
 );
 
-// Helper function extract data from Backend response
 function extractData<T>(response: AxiosResponse<ApiResponse<T>>): T {
-    if (response.data.status === 'error') {
-        throw new Error(response.data.message || 'An error occurred');
-    }
-    return (response.data.data || response.data.users || response.data) as T;
+    return (response.data.data || response.data.user || response.data.users || response.data) as T;
 }
 
 function extractPaginatedData<T>(
@@ -93,11 +89,10 @@ function extractPaginatedData<T>(
     return response.data;
 }
 
-
-// Auth API
+// ==== Auth API =====
 export const authAPI = {
     login: async (username: string, password: string) => {
-        const response = await api.post<ApiResponse<AuthResponseData>>('/auth/login', {
+        const response = await api.post<ApiResponse<AuthResponseData>>('/login', {
             username, 
             password,
         });
@@ -105,26 +100,27 @@ export const authAPI = {
     },
 
     register: async (data: {
-    name: string;
-    username: string; 
-    password: string;
-    password_confirmation: string;
-}) => {
-    const dataToSend = {
-        nama: data.name, 
-        username: data.username,
-        password: data.password,
-        role: 'staff', 
-    };
-    const response = await api.post<ApiResponse<AuthResponseData>>('/users', dataToSend); 
-    
-    return extractData(response);
-},
+        name: string;
+        username: string; 
+        password: string;
+        password_confirmation: string;
+    }) => {
+        const dataToSend = {
+            name: data.name, 
+            username: data.username,
+            password: data.password,
+            role: 'staff', 
+        };
+        
+        const response = await api.post<ApiResponse<{ message: string; user: User }>>('/users', dataToSend); 
+        
+        return extractData(response);
+    },
 
     logout: async () => {
-        const response = await api.post<ApiResponse<null>>('/auth/logout');
-        return response.data;
-    },
+    const response = await api.post<ApiResponse<null>>('/auth/logout');
+    return response.data;
+},
 
     me: async () => {
         const response = await api.get<ApiResponse<User>>('/auth/me'); 
@@ -132,7 +128,7 @@ export const authAPI = {
     },
 };
 
-// Category API 
+// ==== Category API =====
 export const categoryAPI = {
     getAll: async () => {
         const response = await api.get<PaginatedApiResponse<Category>>('/categories');
@@ -155,88 +151,71 @@ export const categoryAPI = {
     },
 };
 
-// Document API - Adjusted untuk backend Golang
+// ==== Document API ====
 export const documentAPI = {
     getAll: async (params?: {
         page?: number;
         per_page?: number;
         search?: string;
         letter_type?: string;
-        start_date?: string;
-        end_date?: string;
     }) => {
-        // Backend return DocumentsApiResponse
         const response = await api.get<DocumentsApiResponse>('/documents', { params });
-        return response.data; 
+        return response.data;
     },
 
-    getById: async (id: string) => { 
+    getById: async (id: string | number) => { 
         const response = await api.get<{ document: Document }>(`/documents/${id}`);
         return response.data.document;
     },
 
     create: async (formData: FormData) => {
-        // Response: { message, file_id, file_name, document }
         const response = await api.post<CreateDocumentResponse>('/documents', formData, {
             headers: { 'Content-Type': 'multipart/form-data' },
         });
-        return response.data; // Return full response dengan message
+        return response.data;
     },
 
     update: async (
-        id: string, 
+        id: string | number, 
         data: {
             sender: string;
             subject: string;
             letter_type: 'masuk' | 'keluar';
-            user_id?: string;
         }
     ) => {
         const response = await api.put<{ message: string; document: Document }>(`/documents/${id}`, data);
         return response.data;
     },
 
-    delete: async (id: string) => { 
+    delete: async (id: string | number) => { 
         const response = await api.delete<{ message: string }>(`/documents/${id}`);
         return response.data;
     },
 
-    download: async (id: string) => { 
+    download: async (id: string | number) => { 
         return api.get(`/documents/${id}/download`, {
             responseType: 'blob',
         });
-        
     },
-    
 };
-
-// upload document function
-export const uploadDocument = (formData: FormData) => {
-  return api.post('/documents', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data', 
-    },
-  });
-};
-
 
 // Activity Log API
-export const activityLogAPI = {
-    getAll: async (params?: {
-        page?: number;
-        per_page?: number;
-        user_id?: string; 
-        document_id?: string; 
-        action?: string;
-        start_date?: string;
-        end_date?: string;
-    }) => {
-        const response = await api.get<PaginatedApiResponse<ActivityLog>>('/activity-logs', { params });
-        return extractPaginatedData(response);
-    },
-};
+// export const activityLogAPI = {
+//     getAll: async (params?: {
+//         page?: number;
+//         per_page?: number;
+//         user_id?: string; 
+//         document_id?: string; 
+//         action?: string;
+//         start_date?: string;
+//         end_date?: string;
+//     }) => {
+//         const response = await api.get<PaginatedApiResponse<ActivityLog>>('/activity-logs', { params });
+//         return extractPaginatedData(response);
+//     },
+// };
 
-// User API (Admin only)
+//  ==== User API (Admin only) =====
 export const userAPI = {
     getAll: async () => {
         const response = await api.get<{ users: User[] }>('/users'); 
@@ -275,11 +254,15 @@ export const userAPI = {
 // Handle error axios
 export function getErrorMessage(error: unknown): string {
     if (error instanceof AxiosError) {
+        // ✅ Cek error dari backend
         if (error.response?.data?.error) {
             return error.response.data.error;
         }
         if (error.response?.data?.message) {
             return error.response.data.message;
+        }
+        if (error.response?.status === 404) {
+            return 'Endpoint tidak ditemukan. Periksa URL backend Anda.';
         }
         return error.message || 'Terjadi kesalahan';
     }

@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Upload, Eye, Trash2, Search, Filter, FileText } from "lucide-react";
+import { toast } from "sonner";
 
 export default function DocumentsPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -49,6 +50,7 @@ export default function DocumentsPage() {
       setDocuments(response.documents || []);
     } catch (error) {
       console.error("Error fetching documents:", error);
+      toast.error("Gagal memuat dokumen");
       setDocuments([]);
     } finally {
       setLoading(false);
@@ -60,20 +62,24 @@ export default function DocumentsPage() {
 
     try {
       await documentAPI.delete(id);
+      toast.success("Dokumen berhasil dihapus");
       fetchDocuments();
-      alert("Dokumen berhasil dihapus");
     } catch (error) {
       console.error("Error deleting document:", error);
-      alert("Gagal menghapus dokumen");
+      toast.error("Gagal menghapus dokumen");
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("id-ID", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+    try {
+      return new Date(dateString).toLocaleDateString("id-ID", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    } catch {
+      return dateString;
+    }
   };
 
   // Filter documents di frontend
@@ -83,7 +89,8 @@ export default function DocumentsPage() {
     return (
       doc.sender?.toLowerCase().includes(searchLower) ||
       doc.subject?.toLowerCase().includes(searchLower) ||
-      doc.file_name?.toLowerCase().includes(searchLower)
+      doc.file_name?.toLowerCase().includes(searchLower) ||
+      doc.user_name?.toLowerCase().includes(searchLower)
     );
   });
 
@@ -177,11 +184,11 @@ export default function DocumentsPage() {
                   {filteredDocuments.map((doc) => (
                     <TableRow key={doc.id}>
                       <TableCell className="font-medium">
-                        {doc.sender}
+                        {doc.sender || "-"}
                       </TableCell>
-                      <TableCell>{doc.subject}</TableCell>
+                      <TableCell>{doc.subject || "-"}</TableCell>
                       <TableCell className="font-mono text-sm">
-                        {doc.file_name}
+                        {doc.file_name || "-"}
                       </TableCell>
                       <TableCell>
                         <Badge

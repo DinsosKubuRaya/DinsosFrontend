@@ -1,18 +1,14 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { documentAPI, categoryAPI, getErrorMessage } from "@/lib/api";
-import { Document, Category } from "@/types";
+import { documentAPI, getErrorMessage } from "@/lib/api";
+import { Document } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -32,32 +28,26 @@ import {
   FileText,
   Calendar,
   User,
-  FolderOpen,
-  Hash,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
+import Link from "next/link";
 
 export default function DocumentDetailPage() {
   const router = useRouter();
   const params = useParams();
   const [documentData, setDocumentData] = useState<Document | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    document_date: "",
-    category_id: "",
+    sender: "",
+    subject: "",
+    letter_type: "masuk" as "masuk" | "keluar",
   });
 
   useEffect(() => {
-    const fetchAllData = async () => {
-      await fetchDocument();
-      await fetchCategories();
-    };
-    fetchAllData();
+    fetchDocument();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
 
@@ -66,11 +56,9 @@ export default function DocumentDetailPage() {
       const doc = await documentAPI.getById(params.id as string);
       setDocumentData(doc);
       setFormData({
-        title: doc.title,
-        description: doc.description || "",
-
-        document_date: doc.document_date.split("T")[0],
-        category_id: String(doc.category_id),
+        sender: doc.sender || "",
+        subject: doc.subject || "",
+        letter_type: doc.letter_type,
       });
     } catch (error) {
       console.error("Error fetching document:", error);
@@ -80,23 +68,17 @@ export default function DocumentDetailPage() {
     }
   };
 
-  const fetchCategories = async () => {
-    try {
-      const response = await categoryAPI.getAll();
-      setCategories(response.data);
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-      toast.error("Gagal memuat kategori");
-    }
-  };
-
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await documentAPI.update(params.id as string, formData);
+      await documentAPI.update(params.id as string, {
+        sender: formData.sender,
+        subject: formData.subject,
+        letter_type: formData.letter_type,
+      });
       setIsEditing(false);
-      fetchDocument();
+      await fetchDocument();
       toast.success("Dokumen berhasil diperbarui!");
     } catch (error: unknown) {
       console.error("Error updating document:", error);
@@ -108,25 +90,14 @@ export default function DocumentDetailPage() {
   };
 
   const handleDownload = async () => {
-    if (!documentData) return;
-    toast.loading(`Mendownload ${documentData.file_name}...`);
-    try {
-      const response = await documentAPI.download(documentData.id);
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", documentData.file_name);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-      toast.dismiss();
-      toast.success("Dokumen berhasil didownload!");
-    } catch (error) {
-      console.error("Error downloading document:", error);
-      toast.dismiss();
-      toast.error("Gagal mendownload dokumen.");
+    if (!documentData?.file_path) {
+      toast.error("URL file tidak ditemukan");
+      return;
     }
+
+    // Redirect ke Google Drive URL
+    window.open(documentData.file_path, "_blank");
+    toast.success("Membuka file di tab baru");
   };
 
   const handleDelete = async () => {
@@ -143,18 +114,18 @@ export default function DocumentDetailPage() {
     }
   };
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + " B";
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + " KB";
-    return (bytes / (1024 * 1024)).toFixed(2) + " MB";
-  };
-
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("id-ID", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+    try {
+      return new Date(dateString).toLocaleDateString("id-ID", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return dateString;
+    }
   };
 
   if (loading && !documentData) {
@@ -169,13 +140,16 @@ export default function DocumentDetailPage() {
     return (
       <div className="text-center py-12">
         <p className="text-muted-foreground">Dokumen tidak ditemukan</p>
+        <Link href="/dashboard/documents">
+          <Button className="mt-4">Kembali ke Daftar Dokumen</Button>
+        </Link>
       </div>
     );
   }
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
@@ -210,7 +184,7 @@ export default function DocumentDetailPage() {
               disabled={loading}
             >
               <Download className="mr-2 h-4 w-4" />
-              Download
+              Buka File
             </Button>
             <Button
               variant="destructive"
@@ -232,17 +206,21 @@ export default function DocumentDetailPage() {
         <CardHeader>
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <CardTitle className="text-2xl">{documentData.title}</CardTitle>
-              <CardDescription className="mt-2">
-                Nomor: {documentData.document_number}
-              </CardDescription>
+              <CardTitle className="text-2xl">
+                {documentData.subject || "Tanpa Subjek"}
+              </CardTitle>
+              <p className="text-muted-foreground mt-2">
+                ID: {documentData.id}
+              </p>
             </div>
             <Badge
               variant={
-                documentData.status === "active" ? "default" : "secondary"
+                documentData.letter_type === "masuk" ? "default" : "secondary"
               }
             >
-              {documentData.status}
+              {documentData.letter_type === "masuk"
+                ? "Surat Masuk"
+                : "Surat Keluar"}
             </Badge>
           </div>
         </CardHeader>
@@ -250,73 +228,62 @@ export default function DocumentDetailPage() {
           {isEditing ? (
             <form onSubmit={handleUpdate} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="title">Judul Dokumen</Label>
+                <Label htmlFor="sender">Pengirim</Label>
                 <Input
-                  id="title"
+                  id="sender"
                   required
-                  value={formData.title}
+                  value={formData.sender}
                   onChange={(e) =>
-                    setFormData({ ...formData, title: e.target.value })
+                    setFormData({ ...formData, sender: e.target.value })
                   }
+                  placeholder="Nama pengirim dokumen"
                 />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="document_date">Tanggal Dokumen</Label>
-                  <Input
-                    id="document_date"
-                    type="date"
-                    required
-                    value={formData.document_date}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        document_date: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="category">Kategori</Label>
-                  <Select
-                    value={formData.category_id}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, category_id: value })
-                    }
-                  >
-                    <SelectTrigger id="category">
-                      <SelectValue placeholder="Pilih kategori" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id.toString()}>
-                          {cat.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Deskripsi</Label>
+                <Label htmlFor="subject">Subjek / Perihal</Label>
                 <Textarea
-                  id="description"
-                  rows={4}
-                  value={formData.description}
+                  id="subject"
+                  required
+                  rows={3}
+                  value={formData.subject}
                   onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
+                    setFormData({ ...formData, subject: e.target.value })
                   }
+                  placeholder="Subjek atau perihal dokumen"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="letter_type">Tipe Surat</Label>
+                <Select
+                  value={formData.letter_type}
+                  onValueChange={(value: "masuk" | "keluar") =>
+                    setFormData({ ...formData, letter_type: value })
+                  }
+                >
+                  <SelectTrigger id="letter_type">
+                    <SelectValue placeholder="Pilih tipe surat" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="masuk">Surat Masuk</SelectItem>
+                    <SelectItem value="keluar">Surat Keluar</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="flex justify-end gap-3">
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setIsEditing(false)}
+                  onClick={() => {
+                    setIsEditing(false);
+                    setFormData({
+                      sender: documentData.sender || "",
+                      subject: documentData.subject || "",
+                      letter_type: documentData.letter_type,
+                    });
+                  }}
                   disabled={loading}
                 >
                   <X className="mr-2 h-4 w-4" />
@@ -337,90 +304,101 @@ export default function DocumentDetailPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
-                    <Hash className="h-5 w-5 text-muted-foreground mt-0.5" />
-                    <div>
+                    <User className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-muted-foreground">
-                        Nomor Dokumen
+                        Pengirim
                       </p>
-                      <p className="text-base font-mono">
-                        {documentData.document_number}
+                      <p className="text-base wrap-break-words">
+                        {documentData.sender || "-"}
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
-                    <div>
+                    <FileText className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-muted-foreground">
-                        Tanggal Dokumen
+                        Nama File
                       </p>
-                      <p className="text-base">
-                        {formatDate(documentData.document_date)}
+                      <p className="text-base break-all">
+                        {documentData.file_name || "-"}
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <FolderOpen className="h-5 w-5 text-muted-foreground mt-0.5" />
-                    <div>
+                    <ExternalLink className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-muted-foreground">
-                        Kategori
+                        Link File
                       </p>
-                      <p className="text-base">{documentData.category?.name}</p>
+                      {documentData.file_path ? (
+                        <a
+                          href={documentData.file_path}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-primary hover:underline break-all"
+                        >
+                          Buka di Google Drive
+                        </a>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">-</p>
+                      )}
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
-                    <FileText className="h-5 w-5 text-muted-foreground mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">
-                        Nama File
-                      </p>
-                      <p className="text-base break-all">
-                        {documentData.file_name}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <FileText className="h-5 w-5 text-muted-foreground mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">
-                        Info File
-                      </p>
-                      <p className="text-base">
-                        {formatFileSize(documentData.file_size)} •{" "}
-                        {documentData.file_type}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <User className="h-5 w-5 text-muted-foreground mt-0.5" />
-                    <div>
+                    <User className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-muted-foreground">
                         Diupload Oleh
                       </p>
-                      <p className="text-base">{documentData.uploader?.name}</p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-base">
+                        {documentData.user_name ||
+                          documentData.user?.name ||
+                          "-"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <Calendar className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Tanggal Upload
+                      </p>
+                      <p className="text-base">
                         {formatDate(documentData.created_at)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <Calendar className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Terakhir Diupdate
+                      </p>
+                      <p className="text-base">
+                        {formatDate(documentData.updated_at)}
                       </p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {documentData.description && (
+              {documentData.subject && (
                 <>
                   <Separator />
                   <div>
                     <p className="text-sm font-medium text-muted-foreground mb-2">
-                      Deskripsi
+                      Subjek / Perihal
                     </p>
                     <p className="text-base whitespace-pre-wrap">
-                      {documentData.description}
+                      {documentData.subject}
                     </p>
                   </div>
                 </>
