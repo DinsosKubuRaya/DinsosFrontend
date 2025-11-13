@@ -5,7 +5,6 @@ import { User } from "@/types";
 import { authAPI, getErrorMessage } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { nanoid } from "nanoid";
 
 interface AuthContextType {
   user: User | null;
@@ -51,26 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (username: string, password: string) => {
     try {
-      // LOGIC DUMMY
-      // console.log("LOGIN DUMMY DIMULAI DENGAN:", { username, password });
-      // const dummyUser: User = {
-      //   id: nanoid(), //
-      //   name: "Admin Dummy",
-      //   username: username,
-      //   role: "admin",
-      //   created_at: new Date().toISOString(),
-      //   updated_at: new Date().toISOString(),
-      // };
-
-      // const response = {
-      //   token: "ini-adalah-token-dummy-12345",
-      //   user: dummyUser,
-      // };
-
-      // await new Promise((resolve) => setTimeout(resolve, 1000));
-      // END LOGIC DUMMY
-
-      // REAL API
+      // API
       const response = await authAPI.login(username, password);
 
       localStorage.setItem("token", response.token);
@@ -100,9 +80,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(response.user);
 
       toast.success("Registrasi Berhasil!", {
-        description: "Akun berhasil didaftarkan dan login otomatis.",
+        description: "Silahkan login dengan akun yang sudah di daftarkan.",
       });
-      router.push("/dashboard");
+      router.push("/login");
     } catch (error: unknown) {
       console.error("Registration error:", error);
       const errorMessage = getErrorMessage(error);

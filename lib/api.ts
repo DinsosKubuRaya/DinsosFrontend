@@ -91,6 +91,8 @@ function extractPaginatedData<T>(
     return response.data;
 }
 
+
+// Auth API
 export const authAPI = {
     login: async (username: string, password: string) => {
         const response = await api.post<ApiResponse<AuthResponseData>>('/auth/login', {
@@ -101,19 +103,21 @@ export const authAPI = {
     },
 
     register: async (data: {
-        name: string;
-        username: string; 
-        password: string;
-        password_confirmation: string;
-    }) => {
-        const dataToSend = {
-            name: data.name,
-            username: data.username,
-            password: data.password,
-        };
-        const response = await api.post<ApiResponse<AuthResponseData>>('/auth/register', dataToSend);
-        return extractData(response);
-    },
+    name: string;
+    username: string; 
+    password: string;
+    password_confirmation: string;
+}) => {
+    const dataToSend = {
+        nama: data.name, 
+        username: data.username,
+        password: data.password,
+        role: 'staff', 
+    };
+    const response = await api.post<ApiResponse<AuthResponseData>>('/users', dataToSend); 
+    
+    return extractData(response);
+},
 
     logout: async () => {
         const response = await api.post<ApiResponse<null>>('/auth/logout');
