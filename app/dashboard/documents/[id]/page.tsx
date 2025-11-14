@@ -90,13 +90,13 @@ export default function DocumentDetailPage() {
   };
 
   const handleDownload = async () => {
-    if (!documentData?.file_path) {
+    if (!documentData?.file_url) {
       toast.error("URL file tidak ditemukan");
       return;
     }
 
     // Redirect ke Google Drive URL
-    window.open(documentData.file_path, "_blank");
+    window.open(documentData.file_url, "_blank");
     toast.success("Membuka file di tab baru");
   };
 
@@ -333,9 +333,9 @@ export default function DocumentDetailPage() {
                       <p className="text-sm font-medium text-muted-foreground">
                         Link File
                       </p>
-                      {documentData.file_path ? (
+                      {documentData.file_url ? (
                         <a
-                          href={documentData.file_path}
+                          href={documentData.file_url}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-sm text-primary hover:underline break-all"

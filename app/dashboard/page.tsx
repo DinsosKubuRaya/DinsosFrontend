@@ -7,12 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FileText, Upload, TrendingUp, FolderOpen, Eye } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function DashboardPage() {
   const [stats, setStats] = useState({
     totalDocuments: 0,
     recentDocuments: 0,
-    recentActivities: 0,
   });
   const [recentDocs, setRecentDocs] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,15 +23,13 @@ export default function DashboardPage() {
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch documents
       const docsResponse = await documentAPI.getAll({ per_page: 5 });
       const docs = docsResponse.documents || [];
 
       setRecentDocs(docs);
       setStats({
-        totalDocuments: docs.length,
+        totalDocuments: docsResponse.total || docs.length,
         recentDocuments: docs.length,
-        recentActivities: 0, // Tidak ada activity log untuk sekarang
       });
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
@@ -61,7 +59,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+        <Spinner className="h-8 w-8" />
       </div>
     );
   }
@@ -178,18 +176,6 @@ export default function DashboardPage() {
           )}
         </CardContent>
       </Card>
-
-      {/* Activity Log Placeholder - Akan diaktifkan nanti */}
-      {/* <Card>
-        <CardHeader>
-          <CardTitle>Aktivitas Terbaru</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <p>Log aktivitas akan segera tersedia</p>
-          </div>
-        </CardContent>
-      </Card> */}
     </div>
   );
 }

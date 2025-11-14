@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -20,7 +19,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
   const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -28,14 +26,13 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    const success = await login(username, password);
-
-    if (success === undefined) {
-      setTimeout(() => {
-        router.push("/dashboard");
-      }, 500);
-    } else {
-      setError("Username atau Password salah. Silakan coba lagi.");
+    try {
+      await login(username, password);
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Username atau Password salah.";
+      setError(msg);
+    } finally {
       setLoading(false);
     }
   };

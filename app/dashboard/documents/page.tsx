@@ -35,17 +35,21 @@ export default function DocumentsPage() {
   useEffect(() => {
     fetchDocuments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [letterTypeFilter]);
+  }, [letterTypeFilter, search]);
 
   const fetchDocuments = async () => {
     setLoading(true);
     try {
-      const params: { letter_type?: string } = {};
+      const params: { letter_type?: string; search?: string } = {};
+
       if (letterTypeFilter && letterTypeFilter !== "all") {
         params.letter_type = letterTypeFilter;
       }
+      if (search) {
+        params.search = search;
+      }
 
-      // Response: { documents: Document[] }
+      // Response dari API
       const response = await documentAPI.getAll(params);
       setDocuments(response.documents || []);
     } catch (error) {
@@ -81,18 +85,6 @@ export default function DocumentsPage() {
       return dateString;
     }
   };
-
-  // Filter documents di frontend
-  const filteredDocuments = documents.filter((doc) => {
-    if (!search) return true;
-    const searchLower = search.toLowerCase();
-    return (
-      doc.sender?.toLowerCase().includes(searchLower) ||
-      doc.subject?.toLowerCase().includes(searchLower) ||
-      doc.file_name?.toLowerCase().includes(searchLower) ||
-      doc.user_name?.toLowerCase().includes(searchLower)
-    );
-  });
 
   return (
     <div className="space-y-6">
@@ -161,7 +153,7 @@ export default function DocumentsPage() {
             <div className="flex items-center justify-center py-12">
               <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
             </div>
-          ) : filteredDocuments.length === 0 ? (
+          ) : documents.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <FileText className="mx-auto h-12 w-12 mb-4 opacity-50" />
               <p>Tidak ada dokumen ditemukan</p>
@@ -181,7 +173,7 @@ export default function DocumentsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredDocuments.map((doc) => (
+                  {documents.map((doc) => (
                     <TableRow key={doc.id}>
                       <TableCell className="font-medium">
                         {doc.sender || "-"}
@@ -219,7 +211,7 @@ export default function DocumentsPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleDelete(doc.id)}
+                            onClick={() => handleDelete(doc.id.toString())} // Konversi ke string jika id adalah number
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>

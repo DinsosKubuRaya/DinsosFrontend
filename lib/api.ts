@@ -1,14 +1,8 @@
 import axios, { AxiosError, AxiosResponse } from 'axios';
 import { Document, User, Category } from '@/types'; 
-
+import Cookies from 'js-cookie'; 
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
-
-interface AuthResponseData {
-    token: string;
-    user: User;
-    message?: string; 
-}
 
 interface ApiResponse<T> {
     status?: 'success' | 'error';
@@ -32,6 +26,10 @@ interface PaginatedApiResponse<T> {
 
 interface DocumentsApiResponse {
     documents: Document[];
+    total: number;
+    current_page: number;
+    last_page: number;
+    per_page: number;
 }
 
 interface CreateDocumentResponse {
@@ -53,7 +51,7 @@ export const api = axios.create({
 // Add token to requests
 api.interceptors.request.use((config) => {
     if (typeof window !== 'undefined') {
-        const token = localStorage.getItem('token');
+        const token = Cookies.get('token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -67,8 +65,7 @@ api.interceptors.response.use(
     (error) => {
         if (error.response?.status === 401) {
             if (typeof window !== 'undefined') {
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
+                Cookies.remove('token'); 
                 window.location.href = '/login';
             }
         }
@@ -92,11 +89,29 @@ function extractPaginatedData<T>(
 // ==== Auth API =====
 export const authAPI = {
     login: async (username: string, password: string) => {
-        const response = await api.post<ApiResponse<AuthResponseData>>('/login', {
+        const response = await api.post<{
+            token: string;
+            user: User;
+            message?: string;
+        }>('/login', {
             username, 
             password,
         });
-        return extractData(response);
+        
+        // ✅ Backend return: { token, user: { ID, name, username, role } }
+        return response.data;
+    },
+
+    me: async () => {
+        const response = await api.get<User>('/auth/me'); 
+        
+        // ✅ Backend return: { ID, name, username, role, created_at }
+        return response.data;
+    },
+
+    logout: async () => {
+        const response = await api.post<ApiResponse<null>>('/auth/logout');
+        return response.data;
     },
 
     register: async (data: {
@@ -113,17 +128,6 @@ export const authAPI = {
         };
         
         const response = await api.post<ApiResponse<{ message: string; user: User }>>('/users', dataToSend); 
-        
-        return extractData(response);
-    },
-
-    logout: async () => {
-    const response = await api.post<ApiResponse<null>>('/auth/logout');
-    return response.data;
-},
-
-    me: async () => {
-        const response = await api.get<ApiResponse<User>>('/auth/me'); 
         return extractData(response);
     },
 };
@@ -199,21 +203,6 @@ export const documentAPI = {
     },
 };
 
-// Activity Log API
-// export const activityLogAPI = {
-//     getAll: async (params?: {
-//         page?: number;
-//         per_page?: number;
-//         user_id?: string; 
-//         document_id?: string; 
-//         action?: string;
-//         start_date?: string;
-//         end_date?: string;
-//     }) => {
-//         const response = await api.get<PaginatedApiResponse<ActivityLog>>('/activity-logs', { params });
-//         return extractPaginatedData(response);
-//     },
-// };
 
 //  ==== User API (Admin only) =====
 export const userAPI = {
@@ -254,7 +243,6 @@ export const userAPI = {
 // Handle error axios
 export function getErrorMessage(error: unknown): string {
     if (error instanceof AxiosError) {
-        // ✅ Cek error dari backend
         if (error.response?.data?.error) {
             return error.response.data.error;
         }

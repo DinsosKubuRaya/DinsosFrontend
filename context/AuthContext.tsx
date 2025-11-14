@@ -33,8 +33,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (token) {
       authAPI
         .me()
-        .then((data) => setUser(data))
-        .catch(() => {
+        .then((data) => {
+          console.log("User data from API:", data);
+          setUser(data);
+        })
+        .catch((error) => {
+          console.error("Failed to fetch user:", error);
           Cookies.remove("token");
           setUser(null);
         })
@@ -47,8 +51,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (username: string, password: string) => {
     try {
       const res = await authAPI.login(username, password);
-      Cookies.set("token", res.token, { expires: 7 }); // ✅ simpan token di cookies
+      console.log("Login response:", res); // ✅ Debug log
+
+      Cookies.set("token", res.token, { expires: 7 });
       setUser(res.user);
+
       toast.success("Login Berhasil!");
       router.push("/dashboard");
     } catch (err: unknown) {

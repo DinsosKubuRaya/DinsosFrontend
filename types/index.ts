@@ -12,6 +12,8 @@ export type Document = {
   sender: string;
   file_name: string;
   subject: string;
+  file_url: string; 
+  cloudinary_id?: string;
   letter_type: 'masuk' | 'keluar';
   user_id?: number; 
   user?: User;
@@ -33,18 +35,18 @@ export interface Category {
 }
 
 
-export interface ActivityLog {
-  id: number;
-  user_id: string;
-  document_id?: string;
-  action: string;
-  description?: string;
-  ip_address?: string;
-  user_agent?: string;
-  user?: User;
-  document?: Document;
-  created_at: string;
-}
+// export interface ActivityLog {
+//   id: number;
+//   user_id: string;
+//   document_id?: string;
+//   action: string;
+//   description?: string;
+//   ip_address?: string;
+//   user_agent?: string;
+//   user?: User;
+//   document?: Document;
+//   created_at: string;
+// }
 
 export interface PaginatedResponse<T> {
   status?: 'success' | 'error';
@@ -60,6 +62,10 @@ export interface PaginatedResponse<T> {
 
 export interface DocumentsResponse {
   documents: Document[];
+  total: number;
+  current_page: number;
+  last_page: number;
+  per_page: number;
 }
 
 export interface DocumentResponse {
@@ -77,9 +83,12 @@ export interface CreateDocumentResponse {
   document: Document;
 }
 
-// API Response types - sesuai dengan backend response
 export interface ApiDocumentsResponse {
   documents: Document[];
+  total: number;
+  current_page: number;
+  last_page: number;
+  per_page: number;
 }
 
 export interface ApiCreateDocumentResponse {
