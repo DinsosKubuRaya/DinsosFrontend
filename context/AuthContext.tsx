@@ -9,7 +9,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { User } from "@/types";
-import { authAPI } from "@/lib/api";
+import { authAPI, getErrorMessage } from "@/lib/api";
 import Cookies from "js-cookie";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
@@ -39,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const verifyUser = async () => {
-      const token = Cookies.get("token");
+      const token = Cookies.get("access_token");
 
       if (token) {
         try {
@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setIsAdmin(userData.role === "admin");
         } catch (error) {
           console.error("Sesi tidak valid:", error);
-          Cookies.remove("token");
+          Cookies.remove("access_token");
           setUser(null);
           setIsAdmin(false);
         }
@@ -66,24 +66,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error("Token tidak diterima dari server");
       }
 
-      // Set token DULU sebelum set user
-      Cookies.set("token", response.token, {
+      Cookies.set("access_token", response.token, {
         expires: 1,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
       });
-      setUser(response.user);
-      setIsAdmin(response.user.role === "admin");
+
+      const userData = await authAPI.me();
+      setUser(userData);
+      setIsAdmin(userData.role === "admin");
+
       setTimeout(() => {
         window.location.href = "/dashboard";
       }, 1500);
     } catch (error) {
-      toast.error("Login Gagal: Username atau password salah");
+      const message = getErrorMessage(error);
+      toast.error(`Login Gagal: ${message}`);
       console.error("Login failed:", error);
       throw error;
     }
   };
-
   const register = async (data: {
     name: string;
     username: string;
@@ -91,15 +93,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password_confirmation: string;
   }) => {
     try {
-      // Panggil API register
       const response = await authAPI.register(data);
 
-      // Tampilkan pesan sukses
       toast.success("Registrasi Berhasil!", {
         description: "Akun Anda telah dibuat. Silakan login.",
       });
 
-      // Redirect ke halaman login
       setTimeout(() => {
         router.push("/login");
       }, 1500);
@@ -112,15 +111,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
+      // Panggil API logout (akan menghapus token dari database)
       await authAPI.logout();
       toast.success("Logout Berhasil");
     } catch (error) {
-      toast.error("Logout Gagal. Silakan coba lagi.");
       console.error("Backend logout failed:", error);
+      // Tetap lanjutkan logout di frontend meskipun backend error
+      toast.warning("Logout berhasil (dengan peringatan)");
     } finally {
-      Cookies.remove("token");
+      // Hapus token dari cookie
+      Cookies.remove("access_token");
+
+      // Reset state
       setUser(null);
       setIsAdmin(false);
+
+      // Redirect ke login
       router.push("/login");
     }
   };

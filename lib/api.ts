@@ -1,7 +1,7 @@
 import axios, { AxiosError, AxiosResponse } from 'axios';
-import { Document, User, Category } from '@/types'; 
-import {  NotificationsApiResponse } from '@/types';
+import { Document, User, Category, NotificationsApiResponse } from '@/types'; 
 import Cookies from 'js-cookie'; 
+
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
@@ -49,42 +49,27 @@ export const api = axios.create({
     },
 });
 
-// ===================================
-// Interceptor Request (Mengirim Token)
-// ===================================
+// Interceptor Request: Mengirim Token
 api.interceptors.request.use((config) => {
     if (typeof window !== 'undefined') {
-        const token = Cookies.get('token');
+        const token = Cookies.get('access_token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
-        } else {
         }
     }
     return config;
 });
 
-// ===================================
-// Interceptor Response (Menangani 401)
-// ===================================
+// Interceptor Response: Menangani Error
 api.interceptors.response.use(
-    (response) => {
-        console.log('✅ Response sukses:', response.config.url);
-        return response;
-    },
+    (response) => response,
     (error) => {
-        console.error('❌ Error response:', {
-            url: error.config?.url,
-            status: error.response?.status,
-            data: error.response?.data
-        });
-
         if (error.response?.status === 401) {
-            // Jangan redirect jika endpoint login/register
             const isAuthEndpoint = error.config?.url?.includes('/login') || 
-                                    error.config?.url?.includes('/users');
+                                    error.config?.url?.includes('/register');
             
             if (!isAuthEndpoint && typeof window !== 'undefined') {
-                Cookies.remove('token');
+                Cookies.remove('access_token');
                 window.location.href = '/login';
             }
         }
@@ -120,11 +105,11 @@ export const authAPI = {
     },
 
     me: async () => {
-        const response = await api.get<User>('/auth/me');
+        const response = await api.get<User>('/me');
         return response.data;
     },
 
-    logout: async () => {
+   logout: async () => {
         const response = await api.post<ApiResponse<null>>('/auth/logout');
         return response.data;
     },
@@ -139,10 +124,10 @@ export const authAPI = {
             name: data.name, 
             username: data.username,
             password: data.password,
-            role: 'admin', 
+            role: 'staff', 
         };
         
-        const response = await api.post<ApiResponse<{ message: string; user: User }>>('/users', dataToSend); 
+        const response = await api.post<ApiResponse<{ message: string; user: User }>>('/register', dataToSend); 
         return extractData(response);
     },
 };
