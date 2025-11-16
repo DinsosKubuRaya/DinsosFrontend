@@ -49,26 +49,34 @@ export const api = axios.create({
     },
 });
 
-// Interceptor Request: Mengirim Token
 api.interceptors.request.use((config) => {
     if (typeof window !== 'undefined') {
         const token = Cookies.get('access_token');
+        console.log('🔑 Token found:', token ? 'YES' : 'NO'); // Debug
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
+            console.log('📤 Request URL:', config.url); // Debug
         }
     }
     return config;
 });
 
-// Interceptor Response: Menangani Error
+// Interceptor Response dengan logging lebih detail
 api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        console.log('✅ Response:', response.config.url, response.status);
+        return response;
+    },
     (error) => {
+        console.error('❌ Error:', error.config?.url, error.response?.status);
+        console.error('Error details:', error.response?.data);
+        
         if (error.response?.status === 401) {
             const isAuthEndpoint = error.config?.url?.includes('/login') || 
                                     error.config?.url?.includes('/register');
             
             if (!isAuthEndpoint && typeof window !== 'undefined') {
+                console.log('🚪 Redirecting to login...');
                 Cookies.remove('access_token');
                 window.location.href = '/login';
             }
@@ -76,6 +84,7 @@ api.interceptors.response.use(
         return Promise.reject(error);
     }
 );
+
 
 function extractData<T>(response: AxiosResponse<ApiResponse<T>>): T {
     return (response.data.data || response.data.user || response.data.users || response.data) as T;
@@ -133,27 +142,27 @@ export const authAPI = {
 };
 
 // ==== Category API =====
-export const categoryAPI = {
-    getAll: async () => {
-        const response = await api.get<PaginatedApiResponse<Category>>('/categories');
-        return extractPaginatedData(response);
-    },
+// export const categoryAPI = {
+//     getAll: async () => {
+//         const response = await api.get<PaginatedApiResponse<Category>>('/categories');
+//         return extractPaginatedData(response);
+//     },
 
-    create: async (data: { name: string; description?: string; parent_id?: number }) => {
-        const response = await api.post<ApiResponse<Category>>('/categories', data);
-        return extractData(response);
-    },
+//     create: async (data: { name: string; description?: string; parent_id?: number }) => {
+//         const response = await api.post<ApiResponse<Category>>('/categories', data);
+//         return extractData(response);
+//     },
 
-    update: async (id: number, data: { name: string; description?: string; parent_id?: number }) => {
-        const response = await api.put<ApiResponse<Category>>(`/categories/${id}`, data);
-        return extractData(response);
-    },
+//     update: async (id: number, data: { name: string; description?: string; parent_id?: number }) => {
+//         const response = await api.put<ApiResponse<Category>>(`/categories/${id}`, data);
+//         return extractData(response);
+//     },
 
-    delete: async (id: number) => {
-        const response = await api.delete<ApiResponse<null>>(`/categories/${id}`);
-        return response.data;
-    },
-};
+//     delete: async (id: number) => {
+//         const response = await api.delete<ApiResponse<null>>(`/categories/${id}`);
+//         return response.data;
+//     },
+// };
 
 // ==== Document API ====
 export const documentAPI = {
@@ -242,15 +251,27 @@ export const userAPI = {
 // ==== Notification API ====
 export const notificationAPI = {
   getAll: async () => {
-    const response = await api.get<NotificationsApiResponse>('/notifications');
-    return response.data;
+    try {
+      console.log('📡 Fetching notifications...');
+      const response = await api.get<NotificationsApiResponse>('/notifications');
+      console.log('📬 Notifications response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Notification fetch error:', error);
+      throw error;
+    }
   },
 
   markAsRead: async (id: string) => {
-    const response = await api.post<{ message: string }>(
-      `/notifications/${id}/read`
-    );
-    return response.data;
+    try {
+      const response = await api.post<{ message: string }>(
+        `/notifications/${id}/read`
+      );
+      return response.data;
+    } catch (error) {
+      console.error('❌ Mark as read error:', error);
+      throw error;
+    }
   },
 };
 

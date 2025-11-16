@@ -23,27 +23,58 @@ export function NotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   const fetchNotifications = async () => {
     try {
       setIsLoading(true);
+      setError(null);
+      console.log("🔔 Fetching notifications...");
+
       const response = await notificationAPI.getAll();
-      setNotifications(response.notifications);
-      setUnreadCount(response.unread_count);
-    } catch (error) {
+      console.log("✅ Notifications loaded:", response);
+
+      setNotifications(response.notifications || []);
+      setUnreadCount(response.unread_count || 0);
+    } catch (error: unknown) {
       console.error("Gagal mengambil notifikasi:", error);
-      toast.error("Gagal mengambil notifikasi");
+
+      // Jangan tampilkan toast error jika 401 (sudah di-handle oleh interceptor)
+      if (
+        (error as unknown as { response?: { status?: number } }).response
+          ?.status !== 401
+      ) {
+        setError("Gagal mengambil notifikasi");
+        toast.error("Gagal mengambil notifikasi");
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchNotifications();
+    let isMounted = true;
 
-    const interval = setInterval(fetchNotifications, 60000);
-    return () => clearInterval(interval);
+    const loadNotifications = async () => {
+      if (isMounted) {
+        await fetchNotifications();
+      }
+    };
+
+    loadNotifications();
+
+    // Polling setiap 60 detik (only if mounted)
+    const interval = setInterval(() => {
+      if (isMounted) {
+        fetchNotifications();
+      }
+    }, 60000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
   const handleNotificationClick = async (notification: Notification) => {
@@ -60,9 +91,12 @@ export function NotificationBell() {
 
       setIsOpen(false);
 
-      router.push(notification.link);
+      // Navigate ke link notifikasi
+      if (notification.link) {
+        router.push(notification.link);
+      }
     } catch (error) {
-      console.error("Gagal memproses notifikasi:", error);
+      console.error("❌ Gagal memproses notifikasi:", error);
       toast.error("Gagal memproses notifikasi");
     }
   };
@@ -90,6 +124,10 @@ export function NotificationBell() {
 
         {isLoading ? (
           <DropdownMenuItem disabled>Memuat notifikasi...</DropdownMenuItem>
+        ) : error ? (
+          <DropdownMenuItem disabled className="text-destructive">
+            {error}
+          </DropdownMenuItem>
         ) : notifications.length === 0 ? (
           <DropdownMenuItem disabled>
             Tidak ada notifikasi baru
@@ -99,7 +137,7 @@ export function NotificationBell() {
             <DropdownMenuItem
               key={notif.id}
               onClick={() => handleNotificationClick(notif)}
-              className="flex items-start gap-2 cursor-pointer"
+              className="flex items-start gap-2 cursor-pointer hover:bg-accent"
             >
               <div className="flex-1 space-y-1">
                 <p

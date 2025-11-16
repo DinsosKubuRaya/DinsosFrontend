@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { documentAPI } from "@/lib/api";
 import { Document } from "@/types";
 import Link from "next/link";
@@ -17,14 +17,25 @@ export default function DashboardPage() {
   const [recentDocs, setRecentDocs] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // ✅ Prevent double fetch in React 18 StrictMode
+  const hasFetched = useRef(false);
+
   useEffect(() => {
+    // ✅ Only fetch once
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+
     fetchDashboardData();
   }, []);
 
   const fetchDashboardData = async () => {
     try {
+      setLoading(true);
+
       const docsResponse = await documentAPI.getAll({ per_page: 5 });
       const docs = docsResponse.documents || [];
+
+      console.log("Dashboard data loaded:", docs.length, "documents");
 
       setRecentDocs(docs);
       setStats({
@@ -33,6 +44,7 @@ export default function DashboardPage() {
       });
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
+      // Don't show error toast for 401 (handled by interceptor)
     } finally {
       setLoading(false);
     }

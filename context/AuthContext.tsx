@@ -6,14 +6,13 @@ import {
   useState,
   useEffect,
   ReactNode,
+  useRef,
 } from "react";
-import { useRouter } from "next/navigation";
 import { User } from "@/types";
 import { authAPI, getErrorMessage } from "@/lib/api";
 import Cookies from "js-cookie";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
-import { set } from "date-fns";
 
 interface AuthContextType {
   user: User | null;
@@ -35,29 +34,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
+
+  // ✅ Prevent double fetch
+  const hasFetched = useRef(false);
+  const isFetching = useRef(false);
 
   useEffect(() => {
+    // ✅ Prevent multiple simultaneous auth checks
+    if (hasFetched.current || isFetching.current) {
+      console.log("🔄 Auth check already done or in progress, skipping...");
+      return;
+    }
+
     const verifyUser = async () => {
       const token = Cookies.get("access_token");
 
-      if (token) {
-        try {
-          const userData = await authAPI.me();
-          setUser(userData);
-          setIsAdmin(userData.role === "admin");
-        } catch (error) {
-          console.error("Sesi tidak valid:", error);
-          Cookies.remove("access_token");
-          setUser(null);
-          setIsAdmin(false);
-        }
+      if (!token) {
+        console.log("❌ No token found, skipping auth check");
+        setLoading(false);
+        hasFetched.current = true;
+        return;
       }
-      setLoading(false);
+
+      try {
+        isFetching.current = true;
+        console.log("🔐 Verifying user session...");
+
+        const userData = await authAPI.me();
+
+        console.log("✅ User verified:", userData);
+        setUser(userData);
+        setIsAdmin(userData.role === "admin");
+      } catch (error) {
+        console.error("❌ Session invalid:", error);
+        Cookies.remove("access_token");
+        setUser(null);
+        setIsAdmin(false);
+      } finally {
+        setLoading(false);
+        hasFetched.current = true;
+        isFetching.current = false;
+      }
     };
 
     verifyUser();
-  }, []);
+  }, []); // ✅ Empty dependency - run ONCE
 
   const login = async (username: string, password: string) => {
     try {
@@ -66,19 +87,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error("Token tidak diterima dari server");
       }
 
+      // Simpan token di cookie
       Cookies.set("access_token", response.token, {
         expires: 1,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
       });
 
+      // Me section data user
       const userData = await authAPI.me();
       setUser(userData);
       setIsAdmin(userData.role === "admin");
 
+      toast.success("Login Berhasil!");
+
       setTimeout(() => {
         window.location.href = "/dashboard";
-      }, 1500);
+      }, 500);
     } catch (error) {
       const message = getErrorMessage(error);
       toast.error(`Login Gagal: ${message}`);
@@ -86,6 +111,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw error;
     }
   };
+
+  // Register Section
   const register = async (data: {
     name: string;
     username: string;
@@ -93,41 +120,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password_confirmation: string;
   }) => {
     try {
-      const response = await authAPI.register(data);
+      await authAPI.register(data);
 
       toast.success("Registrasi Berhasil!", {
-        description: "Akun Anda telah dibuat. Silakan login.",
+        description: "Silakan login dengan akun Anda.",
       });
 
       setTimeout(() => {
-        router.push("/login");
-      }, 1500);
+        window.location.href = "/login";
+      }, 1000);
     } catch (error) {
-      toast.error("Registrasi Gagal. Silakan coba lagi.");
+      const message = getErrorMessage(error);
+      toast.error(`Registrasi Gagal: ${message}`);
       console.error("Registration failed:", error);
       throw error;
     }
   };
 
+  // Logout Section
   const logout = async () => {
     try {
-      // Panggil API logout (akan menghapus token dari database)
       await authAPI.logout();
-      toast.success("Logout Berhasil");
     } catch (error) {
       console.error("Backend logout failed:", error);
-      // Tetap lanjutkan logout di frontend meskipun backend error
-      toast.warning("Logout berhasil (dengan peringatan)");
     } finally {
-      // Hapus token dari cookie
       Cookies.remove("access_token");
-
-      // Reset state
       setUser(null);
       setIsAdmin(false);
-
-      // Redirect ke login
-      router.push("/login");
+      toast.success("Logout Berhasil");
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 500);
     }
   };
 
