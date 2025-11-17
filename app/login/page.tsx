@@ -65,6 +65,7 @@ export default function LoginPage() {
             <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
               <Input
+                className="border-black/40"
                 id="username"
                 type="text"
                 placeholder="Masukkan username Anda"
@@ -77,6 +78,7 @@ export default function LoginPage() {
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
+                className="border-black/40"
                 id="password"
                 type="password"
                 placeholder="••••••••"

@@ -2,7 +2,7 @@
 
 import { useProtectedRoute } from "@/hooks/useProtectedRoute";
 import { useAuth } from "@/context/AuthContext";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Spinner } from "@/components/ui/spinner";
 import { DashboardHeader } from "@/components/dashboards/DashboardHeader";
 import { DashboardSidebar } from "@/components/dashboards/DashboardSidebar";
@@ -15,10 +15,6 @@ export default function DashboardLayout({
   const { loading } = useProtectedRoute();
   const { user, logout, isAdmin } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  useEffect(() => {
-    console.log(" DashboardLayout rendered");
-  });
 
   if (loading) {
     return (

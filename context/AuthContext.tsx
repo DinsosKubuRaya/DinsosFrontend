@@ -6,11 +6,20 @@ import { authAPI } from "@/lib/api";
 import { User } from "@/types";
 import Cookies from "js-cookie";
 
+// Tipe untuk data registrasi
+type RegisterData = {
+  name: string;
+  username: string;
+  password: string;
+  password_confirmation: string;
+};
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   isAdmin: boolean;
   login: (username: string, password: string) => Promise<void>;
+  register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -31,23 +40,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (token) {
       fetchUser();
     } else {
-      console.log("AuthContext: No token found");
       setLoading(false);
     }
   }, []);
 
   const fetchUser = async () => {
     try {
-      console.log("AuthContext: Fetching user data...");
       const userData = await authAPI.me();
-
-      console.log("AuthContext: User data received:", {
-        id: userData.ID || userData.id,
-        name: userData.name,
-        username: userData.username,
-        role: userData.role,
-      });
-
       setUser(userData);
     } catch (error) {
       console.error(" AuthContext: Failed to fetch user:", error);
@@ -58,9 +57,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // --- 2. FUNGSI BARU DITAMBAHKAN DI SINI ---
+  const register = async (data: RegisterData) => {
+    try {
+      await authAPI.register(data);
+      console.log("AuthContext: Registration successful, redirecting to login");
+      router.push("/login");
+    } catch (error: unknown) {
+      console.error("AuthContext: Registration failed:", error);
+      throw error; // Biarkan halaman register menangani error
+    }
+  };
+  // ------------------------------------------
+
   const login = async (username: string, password: string) => {
     try {
-      console.log("AuthContext: Attempting login...");
       const data = await authAPI.login(username, password);
 
       console.log("AuthContext: Login response:", {
@@ -79,7 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log(" AuthContext: User state updated");
       }
 
-      await fetchUser(); // Refresh user data
+      await fetchUser();
       router.push("/dashboard");
     } catch (error: unknown) {
       console.error("AuthContext: Login failed:", error);
@@ -108,7 +119,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, isAdmin, login, logout, refreshUser }}
+      value={{
+        user,
+        loading,
+        isAdmin,
+        login,
+        register, // <-- 3. DITAMBAHKAN DI SINI
+        logout,
+        refreshUser,
+      }}
     >
       {children}
     </AuthContext.Provider>

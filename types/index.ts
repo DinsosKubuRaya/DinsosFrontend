@@ -10,6 +10,17 @@ export type User = {
   UpdatedAt?: string;
 };
 
+
+export interface ActivityLog {
+  id: string;
+  user_id: string | null;
+  user_name: string;
+  action: string;
+  message: string;
+  created_at: string;
+}
+
+
 export function getUserId(user: User): string | undefined {
   return user.ID ?? user.id;
 }

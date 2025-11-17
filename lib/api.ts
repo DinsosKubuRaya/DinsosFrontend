@@ -1,5 +1,5 @@
 import axios, { AxiosError, AxiosResponse } from 'axios';
-import { Document, User, Category, NotificationsApiResponse } from '@/types'; 
+import { Document, User, Category, NotificationsApiResponse , ActivityLog} from '@/types'; 
 import Cookies from 'js-cookie'; 
 
 
@@ -159,6 +159,23 @@ export const authAPI = {
 //         return response.data;
 //     },
 // };
+
+
+
+
+// ==== Activity Log API ====
+export const activityLogAPI = {
+  getAll: async () => {
+    // Backend Anda mengembalikan { data: [], total: 0 }
+    // Sesuaikan dengan PaginatedApiResponse jika perlu
+    const response = await api.get<{ data: ActivityLog[]; total: number }>(
+      '/activity-logs'
+    );
+    // Kita ambil 'data' karena backend mengirim { data: [...] }
+    return response.data.data; 
+  },
+};
+
 
 // ==== Document API ====
 export const documentAPI = {

@@ -87,6 +87,7 @@ export default function RegisterPage() {
             <div className="space-y-2">
               <Label htmlFor="name">Nama Lengkap</Label>
               <Input
+                className="border-black/40"
                 id="name"
                 type="text"
                 placeholder="Masukkan nama lengkap Anda"
@@ -99,6 +100,7 @@ export default function RegisterPage() {
             <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
               <Input
+                className="border-black/40"
                 id="username"
                 type="text"
                 placeholder="Masukkan username unik"
@@ -111,6 +113,7 @@ export default function RegisterPage() {
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
+                className="border-black/40"
                 id="password"
                 type="password"
                 placeholder="••••••••"
@@ -123,6 +126,7 @@ export default function RegisterPage() {
             <div className="space-y-2">
               <Label htmlFor="password_confirmation">Konfirmasi Password</Label>
               <Input
+                className="border-black/40"
                 id="password_confirmation"
                 type="password"
                 placeholder="••••••••"

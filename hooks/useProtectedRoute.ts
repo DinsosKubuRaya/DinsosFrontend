@@ -13,7 +13,6 @@ export function useProtectedRoute(requireAdmin = false) {
   useEffect(() => {
     // Wait for auth to finish loading
     if (loading) {
-      console.log("useProtectedRoute: Still loading...");
       return;
     }
 
@@ -31,14 +30,6 @@ export function useProtectedRoute(requireAdmin = false) {
       router.push("/login");
       return;
     }
-
-    console.log("useProtectedRoute: User authenticated:", {
-      id: user.ID || user.id,
-      name: user.name,
-      role: user.role,
-      isAdmin
-    });
-
     // Check admin requirement
     if (requireAdmin && !isAdmin) {
       console.log("useProtectedRoute: Not admin, redirecting to dashboard...");
