@@ -51,8 +51,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/context/AuthContext"; // ← TAMBAHKAN INI
 
 export default function DocumentsPage() {
+  const { isAdmin } = useAuth(); // ← TAMBAHKAN INI
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -135,12 +137,16 @@ export default function DocumentsPage() {
             Kelola surat masuk dan surat keluar
           </p>
         </div>
-        <Link href="/dashboard/documents/upload">
-          <Button>
-            <Upload className="mr-2 h-4 w-4" />
-            Upload Dokumen
-          </Button>
-        </Link>
+
+        {/* ✅ TOMBOL UPLOAD - HANYA ADMIN */}
+        {isAdmin && (
+          <Link href="/dashboard/documents/upload">
+            <Button>
+              <Upload className="mr-2 h-4 w-4" />
+              Upload Dokumen
+            </Button>
+          </Link>
+        )}
       </div>
 
       {/* Filters */}
@@ -233,19 +239,24 @@ export default function DocumentsPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center justify-end gap-2">
+                            {/* ✅ LIHAT - SEMUA USER */}
                             <Link href={`/dashboard/documents/${doc.id}`}>
                               <Button variant="ghost" size="icon" title="Lihat">
                                 <Eye className="h-4 w-4" />
                               </Button>
                             </Link>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              title="Hapus"
-                              onClick={() => setDocToDelete(doc)} // Buka dialog
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+
+                            {/* ❌ HAPUS - HANYA ADMIN */}
+                            {isAdmin && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                title="Hapus"
+                                onClick={() => setDocToDelete(doc)}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -291,19 +302,24 @@ export default function DocumentsPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          {/* ✅ LIHAT - SEMUA USER */}
                           <Link href={`/dashboard/documents/${doc.id}`}>
                             <DropdownMenuItem>
                               <Eye className="mr-2 h-4 w-4" />
                               Lihat
                             </DropdownMenuItem>
                           </Link>
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => setDocToDelete(doc)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Hapus
-                          </DropdownMenuItem>
+
+                          {/* ❌ HAPUS - HANYA ADMIN */}
+                          {isAdmin && (
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => setDocToDelete(doc)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Hapus
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>

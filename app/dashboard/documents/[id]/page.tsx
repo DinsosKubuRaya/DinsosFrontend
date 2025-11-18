@@ -33,10 +33,12 @@ import {
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext"; // ← TAMBAHKAN INI
 
 export default function DocumentDetailPage() {
   const router = useRouter();
   const params = useParams();
+  const { isAdmin } = useAuth(); // ← TAMBAHKAN INI
   const [documentData, setDocumentData] = useState<Document | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -72,7 +74,6 @@ export default function DocumentDetailPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      // Panggil documentAPI.update yang sudah diperbaiki (di lib/api.ts)
       await documentAPI.update(params.id as string, {
         sender: formData.sender,
         subject: formData.subject,
@@ -91,16 +92,11 @@ export default function DocumentDetailPage() {
   };
 
   const handleDownload = async () => {
-    // ==========================================================
-    // PERUBAHAN DI SINI:
-    // Backend Anda menyimpan URL di field 'file_name', bukan 'file_url'.
-    // ==========================================================
     if (!documentData?.file_name) {
       toast.error("URL file tidak ditemukan");
       return;
     }
 
-    // Redirect ke URL (yang ada di file_name)
     window.open(documentData.file_name, "_blank");
     toast.success("Membuka file di tab baru");
   };
@@ -173,16 +169,23 @@ export default function DocumentDetailPage() {
             </p>
           </div>
         </div>
+
+        {/* ✅ TOMBOL ACTIONS - KONDISIONAL BERDASARKAN ROLE */}
         {!isEditing && (
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setIsEditing(true)}
-              disabled={loading}
-            >
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
-            </Button>
+            {/* ❌ Edit - Hanya Admin */}
+            {isAdmin && (
+              <Button
+                variant="outline"
+                onClick={() => setIsEditing(true)}
+                disabled={loading}
+              >
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
+            )}
+
+            {/* ✅ Download - Semua User */}
             <Button
               variant="outline"
               onClick={handleDownload}
@@ -191,18 +194,22 @@ export default function DocumentDetailPage() {
               <Download className="mr-2 h-4 w-4" />
               Buka File
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={loading}
-            >
-              {loading ? (
-                <Spinner className="mr-2 h-4 w-4" />
-              ) : (
-                <Trash2 className="mr-2 h-4 w-4" />
-              )}
-              Hapus
-            </Button>
+
+            {/* ❌ Hapus - Hanya Admin */}
+            {isAdmin && (
+              <Button
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={loading}
+              >
+                {loading ? (
+                  <Spinner className="mr-2 h-4 w-4" />
+                ) : (
+                  <Trash2 className="mr-2 h-4 w-4" />
+                )}
+                Hapus
+              </Button>
+            )}
           </div>
         )}
       </div>
@@ -327,9 +334,6 @@ export default function DocumentDetailPage() {
                         Nama File
                       </p>
                       <p className="text-base break-all">
-                        {/* INI JUGA DIUBAH DARI file_url ke file_name
-                          AGAR KONSISTEN. Backend hanya punya file_name
-                        */}
                         {documentData.file_name || "-"}
                       </p>
                     </div>
@@ -341,9 +345,6 @@ export default function DocumentDetailPage() {
                       <p className="text-sm font-medium text-muted-foreground">
                         Link File
                       </p>
-                      {/* ========================================================== */}
-                      {/* PERUBAHAN DI SINI: file_url -> file_name */}
-                      {/* ========================================================== */}
                       {documentData.file_name ? (
                         <a
                           href={documentData.file_name}

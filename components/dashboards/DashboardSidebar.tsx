@@ -8,6 +8,7 @@ import {
   Users,
   ShieldCheck,
   Activity,
+  FolderOpen,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { User } from "@/types";
@@ -36,14 +37,20 @@ export function DashboardSidebar({
 }: DashboardSidebarProps) {
   const pathname = usePathname();
 
-  const navigation = [
+  // Navigation untuk semua user
+  const commonNavigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Dokumen", href: "/dashboard/documents", icon: FileText },
+    { name: "Dokumen", href: "/dashboard/documents", icon: FileText }, // ← SEMUA USER
     { name: "Activity Log", href: "/dashboard/activity-log", icon: Activity },
   ];
 
-  const adminNavigation = [
-    { name: "Admin Panel", href: "/dashboard/admin", icon: ShieldCheck },
+  // Navigation khusus Staff
+  const staffNavigation = [
+    { name: "Dokumen Staff", href: "/dashboard/my-document", icon: FolderOpen },
+  ];
+
+  // Navigation khusus Admin
+  const adminPanelNavigation = [
     { name: "Kelola User", href: "/dashboard/admin/users", icon: Users },
   ];
 
@@ -63,8 +70,8 @@ export function DashboardSidebar({
       `}
     >
       <nav className="h-full overflow-y-auto p-4 space-y-2">
-        {/* Main Navigation */}
-        {navigation.map((item) => {
+        {/* Common Navigation (Semua Role) */}
+        {commonNavigation.map((item) => {
           const Icon = item.icon;
           return (
             <Link
@@ -86,7 +93,41 @@ export function DashboardSidebar({
           );
         })}
 
-        {/* Admin Navigation */}
+        {/* Staff Navigation (Hanya Staff) */}
+        {!isAdmin && (
+          <>
+            <div className="my-4 border-t pt-4" />
+            <div className="flex items-center gap-2 px-3 mb-2">
+              <FolderOpen className="h-4 w-4 text-primary" />
+              <p className="text-xs font-semibold text-muted-foreground uppercase">
+                Dokumen Saya
+              </p>
+            </div>
+            {staffNavigation.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  onClick={() => setSidebarOpen(false)}
+                  className={`
+                    flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors
+                    ${
+                      isActive(item.href)
+                        ? "bg-primary text-primary-foreground"
+                        : "hover:bg-accent hover:text-accent-foreground"
+                    }
+                  `}
+                >
+                  <Icon className="h-5 w-5" />
+                  {item.name}
+                </Link>
+              );
+            })}
+          </>
+        )}
+
+        {/* Admin Panel Navigation */}
         {isAdmin && (
           <>
             <div className="my-4 border-t pt-4" />
@@ -96,7 +137,7 @@ export function DashboardSidebar({
                 Administrator
               </p>
             </div>
-            {adminNavigation.map((item) => {
+            {adminPanelNavigation.map((item) => {
               const Icon = item.icon;
               return (
                 <Link

@@ -1,5 +1,5 @@
 import axios, { AxiosError, AxiosResponse } from 'axios';
-import { Document, User, Category, NotificationsApiResponse , ActivityLog, DocumentStaff} from '@/types'; 
+import { Document, User, NotificationsApiResponse , ActivityLog, DocumentStaff} from '@/types'; 
 import Cookies from 'js-cookie'; 
 
 
@@ -143,57 +143,54 @@ export const documentStaffAPI = {
         search?: string;
     }) => {
         const response = await api.get<{
-            documents: DocumentStaff[];
-            total: number;
-            current_page: number;
-            last_page: number;
-            per_page: number;
+            document_staffs: DocumentStaff[];
+            total?: number;
         }>('/document_staff', { params });
-        return response.data;
+        
+        return {
+            documents: response.data.document_staffs || [],
+            total: response.data.total || response.data.document_staffs?.length || 0,
+            current_page: 1,
+            last_page: 1,
+            per_page: response.data.document_staffs?.length || 0,
+        };
     },
 
     getById: async (id: string) => {
-        const response = await api.get<{ document: DocumentStaff }>(`/document_staff/${id}`);
-        return response.data.document;
+        const response = await api.get<{ document_staff: DocumentStaff }>(`/document_staff/${id}`);
+        return response.data.document_staff;
     },
 
     create: async (formData: FormData) => {
         const response = await api.post<{
-            message: string;
-            file_id: string;
-            file_name: string;
-            document: DocumentStaff;
+            document_staff: DocumentStaff;
         }>('/document_staff', formData, {
             headers: { 'Content-Type': 'multipart/form-data' },
         });
-        return response.data;
+        
+        return {
+            message: 'Dokumen berhasil diupload',
+            document: response.data.document_staff,
+        };
     },
 
-    update: async (
-        id: string,
-        data: {
-            subject: string;
-        }
-    ) => {
-        const response = await api.put<{ message: string; document: DocumentStaff }>(
-            `/document_staff/${id}`,
-            data
-        );
-        return response.data;
+    update: async (id: string, data: { subject: string }) => {
+        const response = await api.put<{ 
+            message: string; 
+            document_staff: DocumentStaff; 
+        }>(`/document_staff/${id}`, data);
+        
+        return {
+            message: response.data.message,
+            document: response.data.document_staff,
+        };
     },
 
     delete: async (id: string) => {
         const response = await api.delete<{ message: string }>(`/document_staff/${id}`);
         return response.data;
     },
-
-    download: async (id: string) => {
-        return api.get(`/document_staff/${id}/download`, {
-            responseType: 'blob',
-        });
-    },
 };
-
 
 
 // ==== Activity Log API ====
@@ -263,17 +260,17 @@ export const userAPI = {
    getAll: async () => {
         try {
             const response = await api.get('/users');
-            console.log('✅ Full Response:', response);
-            console.log('✅ Response Data:', response.data);
-            
+            console.log('Full Response:', response);
+            console.log('Response Data:', response.data);
+        
             // Cek apakah ada data users
             const users = response.data?.users || response.data || [];
             
-            console.log('✅ Users Array:', users);
+            console.log('Users Array:', users);
             
             // Pastikan users adalah array
             if (!Array.isArray(users)) {
-                console.error('❌ Users bukan array:', users);
+                console.error('Users bukan array:', users);
                 return [];
             }
             
@@ -281,7 +278,7 @@ export const userAPI = {
             return users;
             
         } catch (error) {
-            console.error("❌ Error fetching users:", error);
+            console.error("Error fetching users:", error);
             throw error;
         }
     },
