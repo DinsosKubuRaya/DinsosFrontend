@@ -57,7 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // --- 2. FUNGSI BARU DITAMBAHKAN DI SINI ---
+  // --- REGISTER ---
   const register = async (data: RegisterData) => {
     try {
       await authAPI.register(data);
@@ -73,12 +73,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (username: string, password: string) => {
     try {
       const data = await authAPI.login(username, password);
-
-      console.log("AuthContext: Login response:", {
-        hasToken: !!data.token,
-        hasUser: !!data.user,
-        userId: data.user?.ID || data.user?.id,
-      });
 
       if (data.token) {
         Cookies.set("access_token", data.token, { expires: 7 });

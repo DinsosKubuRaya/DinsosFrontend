@@ -1,21 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { documentStaffAPI, getErrorMessage } from "@/lib/api";
 import { DocumentStaff } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"; // Import Select
-import { ArrowLeft, Save, Loader2 } from "lucide-react";
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { ArrowLeft, Save, Loader2, Download } from "lucide-react";
 import { toast } from "sonner";
 
 export default function EditDocumentStaffPage() {
@@ -26,15 +27,11 @@ export default function EditDocumentStaffPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [document, setDocument] = useState<DocumentStaff | null>(null);
-
-  // --- PERBAIKAN STATE ---
-  // Pisahkan state form dari state dokumen
   const [formData, setFormData] = useState({
     sender: "",
     subject: "",
     letter_type: "masuk" as "masuk" | "keluar",
   });
-  // --- AKHIR PERBAIKAN ---
 
   useEffect(() => {
     if (id) {
@@ -48,13 +45,11 @@ export default function EditDocumentStaffPage() {
       setLoading(true);
       const doc = await documentStaffAPI.getById(id);
       setDocument(doc);
-      // --- PERBAIKAN: SET FORM DATA ---
       setFormData({
         sender: doc.sender || "",
         subject: doc.subject || "",
         letter_type: (doc.letter_type as "masuk" | "keluar") || "masuk",
       });
-      // --- AKHIR PERBAIKAN ---
     } catch (error) {
       console.error("Error fetching document:", error);
       toast.error(getErrorMessage(error));
@@ -67,25 +62,20 @@ export default function EditDocumentStaffPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // --- PERBAIKAN VALIDASI ---
     if (!formData.subject.trim() || !formData.sender.trim()) {
       toast.error("Sender dan Subjek wajib diisi");
       return;
     }
-    // --- AKHIR PERBAIKAN ---
 
     try {
       setSaving(true);
-      // --- PERBAIKAN: KIRIM SEMUA DATA ---
-      // Ini akan memanggil api.ts baru yang mengirim FormData
       await documentStaffAPI.update(id, {
         sender: formData.sender.trim(),
         subject: formData.subject.trim(),
         letter_type: formData.letter_type,
       });
-      // --- AKHIR PERBAIKAN ---
-      toast.success("Dokumen berhasil diupdate");
-      router.push("/dashboard/my-document");
+      toast.success("Dokumen berhasil diperbarui");
+      router.push(`/dashboard/my-document/${id}`);
     } catch (error) {
       console.error("Update error:", error);
       toast.error(getErrorMessage(error));
@@ -107,143 +97,154 @@ export default function EditDocumentStaffPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6 flex justify-center items-center min-h-[400px]">
+      <div className="container flex justify-center items-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   if (!document) {
-    return null;
+    return (
+      <div className="container py-10 text-center">
+        <p className="text-muted-foreground">Dokumen tidak ditemukan</p>
+        <Button onClick={() => router.back()} className="mt-4">
+          Kembali
+        </Button>
+      </div>
+    );
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-2xl">
-      <Button
-        variant="ghost"
-        onClick={() => router.back()}
-        className="mb-6"
-        disabled={saving}
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Kembali
-      </Button>
+    <div className="container max-w-3xl py-8 px-4 md:px-6">
+      <div className="mb-6 flex items-center gap-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => router.back()}
+          disabled={saving}
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Edit Dokumen</h1>
+          <p className="text-muted-foreground">
+            Perbarui informasi dokumen yang sudah diupload
+          </p>
+        </div>
+      </div>
 
-      <Card className="p-6">
-        <h1 className="text-2xl font-bold mb-6">Edit Dokumen (Staff)</h1>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* File Name (Read Only) */}
-          <div className="space-y-2">
-            <Label>Nama File</Label>
-            <Input
-              value={document.file_name?.split("/").pop() || "-"}
-              disabled
-              className="bg-muted"
-            />
-            <p className="text-sm text-muted-foreground">
-              File tidak dapat diubah
-            </p>
-          </div>
-
-          {/* --- FIELD BARU: SENDER (EDITABLE) --- */}
-          <div className="space-y-2">
-            <Label htmlFor="sender">
-              Pengirim <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="sender"
-              name="sender" // tambahkan name
-              placeholder="Contoh: Instansi/Perusahaan Pengirim"
-              value={formData.sender}
-              onChange={handleFormChange}
-              disabled={saving}
-              required
-            />
-          </div>
-          {/* --- AKHIR FIELD BARU --- */}
-
-          {/* Subject (Editable) */}
-          <div className="space-y-2">
-            <Label htmlFor="subject">
-              Subjek Dokumen <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="subject"
-              name="subject" // tambahkan name
-              placeholder="Contoh: Undangan Rapat Koordinasi"
-              value={formData.subject}
-              onChange={handleFormChange}
-              disabled={saving}
-              required
-            />
-          </div>
-
-          {/* --- FIELD BARU: LETTER TYPE (EDITABLE) --- */}
-          <div className="space-y-2">
-            <Label htmlFor="letter_type">
-              Jenis Surat <span className="text-destructive">*</span>
-            </Label>
-            <Select
-              value={formData.letter_type}
-              onValueChange={handleSelectChange}
-              disabled={saving}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Pilih jenis surat" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="masuk">Surat Masuk</SelectItem>
-                <SelectItem value="keluar">Surat Keluar</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {/* --- AKHIR FIELD BARU --- */}
-
-          {/* Upload Info */}
-          <div className="space-y-2">
-            <Label>Informasi Upload</Label>
-            <div className="text-sm text-muted-foreground space-y-1">
-              <p>Diupload oleh: {document.user?.name || "Unknown"}</p>
-              <p>
-                Tanggal:{" "}
-                {new Date(document.created_at).toLocaleDateString("id-ID", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+      <Card>
+        <CardHeader>
+          <CardTitle>Form Edit</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* FILE INFO (READ ONLY) */}
+            <div className="p-4 bg-muted/50 rounded-lg border space-y-3">
+              <Label className="text-muted-foreground">File Terlampir</Label>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <span className="font-medium truncate max-w-[200px] md:max-w-md">
+                    {document.file_name?.split("/").pop() || "File"}
+                  </span>
+                </div>
+                {document.file_name && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(document.file_name, "_blank")}
+                  >
+                    <Download className="mr-2 h-3 w-3" />
+                    Cek File
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                *File tidak dapat diganti di menu edit. Hapus dan upload ulang
+                jika file salah.
               </p>
             </div>
-          </div>
 
-          {/* Actions */}
-          <div className="flex gap-3 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.back()}
-              disabled={saving}
-              className="flex-1"
-            >
-              Batal
-            </Button>
-            <Button type="submit" disabled={saving} className="flex-1">
-              {saving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Menyimpan...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Simpan Perubahan
-                </>
-              )}
-            </Button>
-          </div>
-        </form>
+            <div className="grid gap-6 md:grid-cols-2">
+              {/* SENDER */}
+              <div className="space-y-2">
+                <Label htmlFor="sender">
+                  Pengirim <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="sender"
+                  name="sender"
+                  value={formData.sender}
+                  onChange={handleFormChange}
+                  disabled={saving}
+                  required
+                />
+              </div>
+
+              {/* LETTER TYPE */}
+              <div className="space-y-2">
+                <Label htmlFor="letter_type">
+                  Jenis Surat <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={formData.letter_type}
+                  onValueChange={handleSelectChange}
+                  disabled={saving}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih jenis surat" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="masuk">Surat Masuk</SelectItem>
+                    <SelectItem value="keluar">Surat Keluar</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* SUBJECT */}
+            <div className="space-y-2">
+              <Label htmlFor="subject">
+                Subjek / Perihal <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="subject"
+                name="subject"
+                rows={3}
+                value={formData.subject}
+                onChange={handleFormChange}
+                disabled={saving}
+                required
+              />
+            </div>
+
+            {/* ACTIONS */}
+            <div className="flex justify-end gap-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.back()}
+                disabled={saving}
+              >
+                Batal
+              </Button>
+              <Button type="submit" disabled={saving}>
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Menyimpan...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Simpan Perubahan
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
       </Card>
     </div>
   );

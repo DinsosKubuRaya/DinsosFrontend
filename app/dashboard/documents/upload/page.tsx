@@ -81,13 +81,18 @@ export default function UploadDocumentPage() {
         router.push("/dashboard/documents");
       }, 1500);
     } catch (error: unknown) {
+      toast.error("Gagal mengupload dokumen");
+      console.error("Upload Error:", error);
+
       let errorMessage = "Terjadi kesalahan";
 
-      if (error instanceof AxiosError && error.response?.data) {
-        const errResp: { error?: string; message?: string } =
-          error.response.data;
-        errorMessage =
-          errResp.error || errResp.message || "Gagal mengupload dokumen";
+      if (error instanceof AxiosError) {
+        if (error.response?.data) {
+          const errResp: { error?: string; message?: string } =
+            error.response.data;
+          errorMessage =
+            errResp.error || errResp.message || "Gagal mengupload dokumen";
+        }
       }
 
       toast.error("Gagal mengupload dokumen", {
@@ -182,7 +187,7 @@ export default function UploadDocumentPage() {
                 type="file"
                 onChange={handleFileChange}
                 required
-                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp"
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp,.xls,.xlsx,.ppt,.pptx"
                 disabled={loading}
               />
               {file && (
@@ -191,7 +196,8 @@ export default function UploadDocumentPage() {
                 </p>
               )}
               <p className="text-xs text-muted-foreground">
-                Format: PDF, DOC, DOCX, JPG, PNG (Max 10MB)
+                Format: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, JPG, PNG (Max
+                10MB)
               </p>
             </div>
 

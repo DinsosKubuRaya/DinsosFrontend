@@ -21,6 +21,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   ArrowLeft,
   Edit,
+  Eye,
   Download,
   Trash2,
   Save,
@@ -49,7 +50,9 @@ export default function DocumentDetailPage() {
   });
 
   useEffect(() => {
-    fetchDocument();
+    if (params.id) {
+      fetchDocument();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
 
@@ -91,19 +94,45 @@ export default function DocumentDetailPage() {
     }
   };
 
-  // ✅ UPDATE: Menggunakan endpoint download baru
-  const handleDownload = async () => {
-    if (!documentData?.id) {
-      toast.error("ID dokumen tidak ditemukan");
+  // Cek ekstensi file
+  const getFileExtension = (filename: string) => {
+    return filename.split(".").pop()?.toLowerCase() || "";
+  };
+
+  // Preview menggunakan Google Docs Viewer
+  const handlePreview = () => {
+    if (!documentData?.file_url) {
+      toast.error("Link file tidak ditemukan");
       return;
     }
 
-    try {
-      await documentAPI.download(documentData.id);
-      toast.success("Membuka file...");
-    } catch (error) {
-      console.error("Download error:", error);
-      toast.error("Gagal membuka file");
+    const ext = getFileExtension(documentData.file_name || "");
+    const isOfficeDoc = [
+      "pdf",
+      "doc",
+      "docx",
+      "xls",
+      "xlsx",
+      "ppt",
+      "pptx",
+    ].includes(ext);
+
+    if (isOfficeDoc) {
+      // Gunakan Google Docs Viewer untuk PDF & Office Files
+      const googleViewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(
+        documentData.file_url
+      )}&embedded=true`;
+      window.open(googleViewerUrl, "_blank");
+    } else {
+      // Untuk Gambar, buka langsung
+      window.open(documentData.file_url, "_blank");
+    }
+  };
+
+  // Download Langsung (Direct Link)
+  const handleDirectDownload = () => {
+    if (documentData?.file_url) {
+      window.open(documentData.file_url, "_blank");
     }
   };
 
@@ -189,14 +218,25 @@ export default function DocumentDetailPage() {
               </Button>
             )}
 
-            {/* ✅ TOMBOL DOWNLOAD - Menggunakan method baru */}
+            {/* TOMBOL PREVIEW  */}
+            <Button
+              variant="default"
+              onClick={handlePreview}
+              disabled={loading || !documentData.file_url}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Eye className="mr-2 h-4 w-4" />
+              Preview File
+            </Button>
+
+            {/* TOMBOL DOWNLOAD (UNDUH) */}
             <Button
               variant="outline"
-              onClick={handleDownload}
-              disabled={loading}
+              onClick={handleDirectDownload}
+              disabled={loading || !documentData.file_url}
             >
               <Download className="mr-2 h-4 w-4" />
-              Buka File
+              Download
             </Button>
 
             {isAdmin && (
@@ -336,22 +376,22 @@ export default function DocumentDetailPage() {
                       <p className="text-sm font-medium text-muted-foreground">
                         Nama File
                       </p>
+                      {/* Tampilkan nama file asli */}
                       <p className="text-base break-all">
                         {documentData.file_name?.split("/").pop() || "-"}
                       </p>
                     </div>
                   </div>
 
-                  {/* ✅ UPDATE: Link menggunakan getDownloadUrl */}
                   <div className="flex items-start gap-3">
                     <ExternalLink className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-muted-foreground">
                         Link File
                       </p>
-                      {documentData.id ? (
+                      {documentData.file_url ? (
                         <a
-                          href={documentAPI.getDownloadUrl(documentData.id)}
+                          href={documentData.file_url}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-sm text-primary hover:underline break-all"

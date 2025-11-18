@@ -6,7 +6,6 @@ import { userAPI, getErrorMessage } from "@/lib/api";
 import { User } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { UserPlus } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";

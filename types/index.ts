@@ -40,13 +40,15 @@ export interface NotificationsApiResponse {
 }
 
 export type Document = {
-  id: string;   sender: string;
+  id: string;   
+  sender: string;
   file_name: string;
-  subject: string;
-  file_url: string; 
-  cloudinary_id?: string;
+  subject: string;       
+  public_id: string;        
+  resource_type: string;
   letter_type: 'masuk' | 'keluar';
   user_id?: string; 
+  file_url: string; 
   user?: User;
   user_name?: string;
   created_at: string;
@@ -54,15 +56,17 @@ export type Document = {
 };
 
 export interface DocumentStaff {
-  id: string;
-  user_id: string;
-  user?: User;
-  sender: string;         
-  subject: string;
-  letter_type: 'masuk' | 'keluar'; 
+  id: string;   
+  sender: string;
   file_name: string;
-  public_id: string;
+  subject: string;       
+  public_id: string;        
   resource_type: string;
+  letter_type: 'masuk' | 'keluar';
+  user_id?: string; 
+  file_url: string; 
+  user?: User;
+  user_name?: string;
   created_at: string;
   updated_at: string;
 }

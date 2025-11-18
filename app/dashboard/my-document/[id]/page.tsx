@@ -5,32 +5,31 @@ import { useRouter, useParams } from "next/navigation";
 import { documentStaffAPI, getErrorMessage } from "@/lib/api";
 import { DocumentStaff } from "@/types";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { ArrowLeft, Save, Loader2, ExternalLink, Download } from "lucide-react";
+  ArrowLeft,
+  Edit,
+  Eye,
+  Download,
+  Trash2,
+  FileText,
+  Calendar,
+  User,
+  ExternalLink,
+} from "lucide-react";
 import { toast } from "sonner";
+import { Spinner } from "@/components/ui/spinner";
+import Link from "next/link";
 
-export default function EditDocumentStaffPage() {
+export default function DocumentStaffDetailPage() {
   const router = useRouter();
   const params = useParams();
   const id = params?.id as string;
 
+  const [documentData, setDocumentData] = useState<DocumentStaff | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [document, setDocument] = useState<DocumentStaff | null>(null);
-  const [formData, setFormData] = useState({
-    sender: "",
-    subject: "",
-    letter_type: "masuk" as "masuk" | "keluar",
-  });
 
   useEffect(() => {
     if (id) {
@@ -41,270 +40,296 @@ export default function EditDocumentStaffPage() {
 
   const fetchDocument = async () => {
     try {
-      setLoading(true);
       const doc = await documentStaffAPI.getById(id);
-      console.log("📄 Fetched document:", doc); // Debug log
-
-      setDocument(doc);
-      setFormData({
-        sender: doc.sender || "",
-        subject: doc.subject || "",
-        letter_type: (doc.letter_type as "masuk" | "keluar") || "masuk",
-      });
+      setDocumentData(doc);
     } catch (error) {
       console.error("Error fetching document:", error);
-      toast.error(getErrorMessage(error));
-      router.back();
+      toast.error("Gagal memuat dokumen");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const getFileExtension = (filename: string) => {
+    return filename.split(".").pop()?.toLowerCase() || "";
+  };
 
-    if (!formData.subject.trim() || !formData.sender.trim()) {
-      toast.error("Sender dan Subjek wajib diisi");
+  // ✅ SMART PREVIEW (Google Docs Viewer)
+  const handlePreview = () => {
+    if (!documentData?.file_name) {
+      toast.error("Link file tidak ditemukan");
       return;
     }
 
+    const ext = getFileExtension(documentData.file_name);
+    const isOfficeDoc = [
+      "pdf",
+      "doc",
+      "docx",
+      "xls",
+      "xlsx",
+      "ppt",
+      "pptx",
+    ].includes(ext);
+
+    if (isOfficeDoc) {
+      const googleViewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(
+        documentData.file_name
+      )}&embedded=true`;
+      window.open(googleViewerUrl, "_blank");
+    } else {
+      window.open(documentData.file_name, "_blank");
+    }
+  };
+
+  const handleDirectDownload = () => {
+    if (documentData?.file_name) {
+      window.open(documentData.file_name, "_blank");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm("Yakin ingin menghapus dokumen ini?")) return;
+    setLoading(true);
     try {
-      setSaving(true);
-      await documentStaffAPI.update(id, {
-        sender: formData.sender.trim(),
-        subject: formData.subject.trim(),
-        letter_type: formData.letter_type,
-      });
-      toast.success("Dokumen berhasil diupdate");
+      await documentStaffAPI.delete(id);
+      toast.success("Dokumen berhasil dihapus.");
       router.push("/dashboard/my-document");
     } catch (error) {
-      console.error("Update error:", error);
-      toast.error(getErrorMessage(error));
-    } finally {
-      setSaving(false);
+      console.error("Error deleting document:", error);
+      toast.error("Gagal menghapus dokumen.");
+      setLoading(false);
     }
   };
 
-  const handleFormChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSelectChange = (value: "masuk" | "keluar") => {
-    setFormData((prev) => ({ ...prev, letter_type: value }));
-  };
-
-  // ✅ Handler untuk buka file
-  const handleOpenFile = () => {
-    if (!document?.file_name) {
-      toast.error("URL file tidak ditemukan");
-      return;
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString("id-ID", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return dateString;
     }
-    window.open(document.file_name, "_blank");
-    toast.success("Membuka file di tab baru");
   };
 
-  if (loading) {
+  if (loading && !documentData) {
     return (
-      <div className="container mx-auto p-6 flex justify-center items-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Spinner className="h-12 w-12" />
       </div>
     );
   }
 
-  if (!document) {
+  if (!documentData) {
     return (
-      <div className="container mx-auto p-6 text-center">
+      <div className="text-center py-12">
         <p className="text-muted-foreground">Dokumen tidak ditemukan</p>
-        <Button onClick={() => router.back()} className="mt-4">
-          Kembali
-        </Button>
+        <Link href="/dashboard/my-document">
+          <Button className="mt-4">Kembali ke Daftar</Button>
+        </Link>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-2xl">
-      <Button
-        variant="ghost"
-        onClick={() => router.back()}
-        className="mb-6"
-        disabled={saving}
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Kembali
-      </Button>
-
-      <Card className="p-6">
-        <h1 className="text-2xl font-bold mb-6">Edit Dokumen (Staff)</h1>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* ✅ FILE INFO WITH DOWNLOAD BUTTON */}
-          <div className="space-y-2">
-            <Label>File Dokumen</Label>
-            <div className="flex items-center gap-2">
-              <Input
-                value={
-                  document.file_name
-                    ? document.file_name.split("/").pop() || "File tersedia"
-                    : "File tidak ditemukan"
-                }
-                disabled
-                className="bg-muted flex-1"
-              />
-
-              {/* ✅ TOMBOL DOWNLOAD/BUKA FILE */}
-              {document.file_name && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={handleOpenFile}
-                  title="Buka File"
-                >
-                  <Download className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-
-            {/* ✅ LINK LANGSUNG KE CLOUDINARY */}
-            {document.file_name && (
-              <div className="flex items-center gap-2 text-sm">
-                <ExternalLink className="h-3 w-3 text-muted-foreground" />
-                <a
-                  href={document.file_name}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline truncate"
-                >
-                  {document.file_name}
-                </a>
-              </div>
-            )}
-
-            <p className="text-sm text-muted-foreground">
-              File tidak dapat diubah. Jika perlu mengubah file, hapus dokumen
-              ini dan upload ulang.
+    <div className="space-y-6 max-w-4xl p-4 md:p-6 mx-auto">
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.back()}
+            disabled={loading}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+              Detail Dokumen
+            </h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              Detail informasi dokumen surat (Staff)
             </p>
           </div>
+        </div>
 
-          {/* SENDER */}
-          <div className="space-y-2">
-            <Label htmlFor="sender">
-              Pengirim <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="sender"
-              name="sender"
-              placeholder="Contoh: Instansi/Perusahaan Pengirim"
-              value={formData.sender}
-              onChange={handleFormChange}
-              disabled={saving}
-              required
-            />
-          </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => router.push(`/dashboard/my-document/${id}/edit`)}
+            disabled={loading}
+          >
+            <Edit className="mr-2 h-4 w-4" />
+            Edit
+          </Button>
 
-          {/* SUBJECT */}
-          <div className="space-y-2">
-            <Label htmlFor="subject">
-              Subjek Dokumen <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="subject"
-              name="subject"
-              placeholder="Contoh: Undangan Rapat Koordinasi"
-              value={formData.subject}
-              onChange={handleFormChange}
-              disabled={saving}
-              required
-            />
-          </div>
+          <Button
+            variant="default"
+            onClick={handlePreview}
+            disabled={loading || !documentData.file_name}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <Eye className="mr-2 h-4 w-4" />
+            Preview
+          </Button>
 
-          {/* LETTER TYPE */}
-          <div className="space-y-2">
-            <Label htmlFor="letter_type">
-              Jenis Surat <span className="text-destructive">*</span>
-            </Label>
-            <Select
-              value={formData.letter_type}
-              onValueChange={handleSelectChange}
-              disabled={saving}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Pilih jenis surat" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="masuk">Surat Masuk</SelectItem>
-                <SelectItem value="keluar">Surat Keluar</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Button
+            variant="outline"
+            onClick={handleDirectDownload}
+            disabled={loading || !documentData.file_name}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Download
+          </Button>
 
-          {/* UPLOAD INFO */}
-          <div className="space-y-2">
-            <Label>Informasi Upload</Label>
-            <div className="text-sm text-muted-foreground space-y-1 p-3 bg-muted rounded-md">
-              <p>
-                <span className="font-medium text-foreground">
-                  Diupload oleh:
-                </span>{" "}
-                {document.user?.name || "Unknown"}
+          <Button
+            variant="destructive"
+            onClick={handleDelete}
+            disabled={loading}
+          >
+            {loading ? (
+              <Spinner className="mr-2 h-4 w-4" />
+            ) : (
+              <Trash2 className="mr-2 h-4 w-4" />
+            )}
+            Hapus
+          </Button>
+        </div>
+      </div>
+
+      {/* CONTENT CARD */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-start justify-between">
+            <div className="flex-1 pr-4">
+              <CardTitle className="text-xl md:text-2xl leading-tight">
+                {documentData.subject || "Tanpa Subjek"}
+              </CardTitle>
+              <p className="text-muted-foreground text-sm mt-2 font-mono">
+                ID: {documentData.id}
               </p>
-              <p>
-                <span className="font-medium text-foreground">Tanggal:</span>{" "}
-                {new Date(document.created_at).toLocaleDateString("id-ID", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </p>
-              {document.updated_at !== document.created_at && (
-                <p>
-                  <span className="font-medium text-foreground">
-                    Terakhir diupdate:
-                  </span>{" "}
-                  {new Date(document.updated_at).toLocaleDateString("id-ID", {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </p>
-              )}
             </div>
-          </div>
-
-          {/* ACTIONS */}
-          <div className="flex gap-3 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.back()}
-              disabled={saving}
-              className="flex-1"
+            <Badge
+              variant={
+                documentData.letter_type === "masuk" ? "default" : "secondary"
+              }
+              className="shrink-0 capitalize"
             >
-              Batal
-            </Button>
-            <Button type="submit" disabled={saving} className="flex-1">
-              {saving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Menyimpan...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Simpan Perubahan
-                </>
-              )}
-            </Button>
+              Surat {documentData.letter_type}
+            </Badge>
           </div>
-        </form>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Kiri */}
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <User className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Pengirim
+                    </p>
+                    <p className="text-base font-medium">
+                      {documentData.sender || "-"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <FileText className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Nama File
+                    </p>
+                    <p className="text-base break-all">
+                      {documentData.file_name?.split("/").pop() || "-"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <ExternalLink className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Link File
+                    </p>
+                    {documentData.file_name ? (
+                      <a
+                        href={documentData.file_name}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-primary hover:underline break-all"
+                      >
+                        Buka di Tab Baru
+                      </a>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">-</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Kanan */}
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <User className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Diupload Oleh
+                    </p>
+                    <p className="text-base">
+                      {documentData.user?.name || "Saya Sendiri"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <Calendar className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Tanggal Upload
+                    </p>
+                    <p className="text-base">
+                      {formatDate(documentData.created_at)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <Calendar className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Terakhir Diupdate
+                    </p>
+                    <p className="text-base">
+                      {formatDate(documentData.updated_at)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {documentData.subject && (
+              <>
+                <Separator />
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-2">
+                    Subjek / Perihal Lengkap
+                  </p>
+                  <div className="p-4 bg-muted/50 rounded-lg text-base whitespace-pre-wrap border">
+                    {documentData.subject}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </CardContent>
       </Card>
     </div>
   );

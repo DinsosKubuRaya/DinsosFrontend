@@ -17,7 +17,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Activity } from "lucide-react";
 import { format } from "date-fns";
-import { id } from "date-fns/locale/id"; // Untuk format tanggal Indonesia
+import { id } from "date-fns/locale/id";
 
 export default function ActivityLogPage() {
   const [logs, setLogs] = useState<ActivityLog[]>([]);

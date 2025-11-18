@@ -149,8 +149,6 @@ export const activityLogAPI = {
 };
 
 
-// Tambahkan/update di file lib/api.ts
-
 // ==== Document API ====
 export const documentAPI = {
     getAll: async (params?: {
@@ -192,14 +190,14 @@ export const documentAPI = {
         return response.data;
     },
 
-    // ✅ UPDATE: Menggunakan endpoint download baru
+    //Menggunakan endpoint download baru
     download: async (id: string | number) => { 
         // Cara 1: Redirect langsung
         const downloadUrl = `${API_URL}/documents/${id}/download`;
         window.open(downloadUrl, '_blank');
     },
     
-    // ✅ ATAU bisa juga return URL untuk digunakan di <a> tag
+    //Return URL untuk digunakan di <a> tag
     getDownloadUrl: (id: string | number) => {
         return `${API_URL}/documents/${id}/download`;
     },
@@ -273,13 +271,13 @@ export const documentStaffAPI = {
     return response.data;
   },
 
-  // ✅ TAMBAH: Download endpoint
+  //Download endpoint
   download: async (id: string) => {
     const downloadUrl = `${API_URL}/document_staff/${id}/download`;
     window.open(downloadUrl, '_blank');
   },
 
-  // ✅ TAMBAH: Get download URL
+  //Download endpoint
   getDownloadUrl: (id: string) => {
     return `${API_URL}/document_staff/${id}/download`;
   },
@@ -289,21 +287,14 @@ export const documentStaffAPI = {
 export const userAPI = {
    getAll: async () => {
         try {
-            const response = await api.get('/users');
-            console.log('Full Response:', response);
-            console.log('Response Data:', response.data);
-        
-            const users = response.data?.users || response.data || [];
-            
-            console.log('Users Array:', users);
+            const response = await api.get('/users');       
+            const users = response.data?.users || response.data || [];            
             
             if (!Array.isArray(users)) {
-                console.error('Users bukan array:', users);
                 return [];
             }
             
-            return users;
-            
+            return users;         
         } catch (error) {
             console.error("Error fetching users:", error);
             throw error;
@@ -323,7 +314,7 @@ export const userAPI = {
             password: data.password,
         };
 
-        // Panggil endpoint yang benar
+        // Panggil endpoint
         const response = await api.post<{ message: string; user: User }>(endpoint, dataToSend);
         return response.data.user;
     },
