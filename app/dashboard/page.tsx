@@ -8,8 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FileText, Upload, TrendingUp, FolderOpen, Eye } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { useAuth } from "@/context/AuthContext";
 
 export default function DashboardPage() {
+  // 2. Ambil status isAdmin dan loading auth
+  const { isAdmin, loading: authLoading } = useAuth();
+
   const [stats, setStats] = useState({
     totalDocuments: 0,
     recentDocuments: 0,
@@ -57,14 +61,7 @@ export default function DashboardPage() {
     }
   };
 
-  // === FUNCTION TIDAK DIPAKAI ===
-  // const formatFileSize = (bytes: number) => {
-  //   if (bytes < 1024) return bytes + " B";
-  //   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + " KB";
-  //   return (bytes / (1024 * 1024)).toFixed(2) + " MB";
-  // };
-
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Spinner className="h-8 w-8" />
@@ -111,20 +108,25 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Quick Actions</CardTitle>
-            <FolderOpen className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <Link href="/dashboard/documents/upload">
-              <Button className="w-full" size="sm">
-                <Upload className="mr-2 h-4 w-4" />
-                Upload Dokumen
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+        {/* 4. Quick Actions - Hanya Tampil Jika Admin */}
+        {isAdmin && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Quick Actions
+              </CardTitle>
+              <FolderOpen className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <Link href="/dashboard/documents/upload">
+                <Button className="w-full" size="sm">
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload Dokumen
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Recent Documents */}

@@ -100,7 +100,7 @@ export function DashboardSidebar({
             <div className="flex items-center gap-2 px-3 mb-2">
               <FolderOpen className="h-4 w-4 text-primary" />
               <p className="text-xs font-semibold text-muted-foreground uppercase">
-                Dokumen Saya
+                Kelola Dokumen
               </p>
             </div>
             {staffNavigation.map((item) => {

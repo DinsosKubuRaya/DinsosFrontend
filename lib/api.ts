@@ -128,7 +128,6 @@ export const authAPI = {
             name: data.name, 
             username: data.username,
             password: data.password,
-
         };
         
         const response = await api.post<ApiResponse<{ message: string; user: User }>>('/users/admin', dataToSend); 
@@ -189,15 +188,11 @@ export const documentAPI = {
         const response = await api.delete<{ message: string }>(`/documents/${id}`);
         return response.data;
     },
-
-    //Menggunakan endpoint download baru
     download: async (id: string | number) => { 
-        // Cara 1: Redirect langsung
         const downloadUrl = `${API_URL}/documents/${id}/download`;
         window.open(downloadUrl, '_blank');
     },
     
-    //Return URL untuk digunakan di <a> tag
     getDownloadUrl: (id: string | number) => {
         return `${API_URL}/documents/${id}/download`;
     },

@@ -2,12 +2,23 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { documentStaffAPI, getErrorMessage } from "@/lib/api";
+import { documentStaffAPI } from "@/lib/api";
 import { DocumentStaff } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"; // 1. Import Alert Dialog
 import {
   ArrowLeft,
   Edit,
@@ -54,7 +65,7 @@ export default function DocumentStaffDetailPage() {
     return filename.split(".").pop()?.toLowerCase() || "";
   };
 
-  // ✅ SMART PREVIEW (Google Docs Viewer)
+  // ✅ SMART PREVIEW
   const handlePreview = () => {
     if (!documentData?.file_name) {
       toast.error("Link file tidak ditemukan");
@@ -88,8 +99,8 @@ export default function DocumentStaffDetailPage() {
     }
   };
 
-  const handleDelete = async () => {
-    if (!confirm("Yakin ingin menghapus dokumen ini?")) return;
+  // 2. Fungsi Delete yang akan dipanggil saat tombol konfirmasi ditekan
+  const executeDelete = async () => {
     setLoading(true);
     try {
       await documentStaffAPI.delete(id);
@@ -98,7 +109,7 @@ export default function DocumentStaffDetailPage() {
     } catch (error) {
       console.error("Error deleting document:", error);
       toast.error("Gagal menghapus dokumen.");
-      setLoading(false);
+      setLoading(false); // Stop loading jika gagal
     }
   };
 
@@ -187,18 +198,37 @@ export default function DocumentStaffDetailPage() {
             Download
           </Button>
 
-          <Button
-            variant="destructive"
-            onClick={handleDelete}
-            disabled={loading}
-          >
-            {loading ? (
-              <Spinner className="mr-2 h-4 w-4" />
-            ) : (
-              <Trash2 className="mr-2 h-4 w-4" />
-            )}
-            Hapus
-          </Button>
+          {/* 3. Implementasi Alert Dialog untuk Hapus */}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" disabled={loading}>
+                {loading ? (
+                  <Spinner className="mr-2 h-4 w-4" />
+                ) : (
+                  <Trash2 className="mr-2 h-4 w-4" />
+                )}
+                Hapus
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tindakan ini tidak dapat dibatalkan. Dokumen ini akan dihapus
+                  secara permanen dari sistem.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Batal</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={executeDelete}
+                  className="bg-red-600 hover:bg-red-700 text-white focus:ring-red-600"
+                >
+                  Ya, Hapus
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 

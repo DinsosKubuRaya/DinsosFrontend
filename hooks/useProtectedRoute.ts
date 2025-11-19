@@ -18,7 +18,6 @@ export function useProtectedRoute(requireAdmin = false) {
 
     // Only check once
     if (hasChecked.current) {
-      console.log("useProtectedRoute: Already checked");
       return;
     }
 
@@ -26,13 +25,11 @@ export function useProtectedRoute(requireAdmin = false) {
 
     // Check authentication
     if (!user) {
-      console.log("useProtectedRoute: Not authenticated, redirecting to login...");
       router.push("/login");
       return;
     }
     // Check admin requirement
     if (requireAdmin && !isAdmin) {
-      console.log("useProtectedRoute: Not admin, redirecting to dashboard...");
       router.push("/dashboard");
       return;
     }

@@ -54,6 +54,9 @@ export default function RegisterPage() {
       setError(errorMessage);
       toast.error("Registrasi Gagal", { description: errorMessage });
     } finally {
+      toast.success("Registrasi Berhasil! Silahkan login.", {
+        description: "Dengan akun yang telah dibuat.",
+      });
       setLoading(false);
     }
   };

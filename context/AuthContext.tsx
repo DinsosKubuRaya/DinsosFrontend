@@ -6,7 +6,6 @@ import { authAPI } from "@/lib/api";
 import { User } from "@/types";
 import Cookies from "js-cookie";
 
-// Tipe untuk data registrasi
 type RegisterData = {
   name: string;
   username: string;
@@ -33,7 +32,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const isAdmin = user?.role === "admin";
 
-  // Fetch user on mount
   useEffect(() => {
     const token = Cookies.get("access_token");
 
@@ -61,10 +59,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = async (data: RegisterData) => {
     try {
       await authAPI.register(data);
-      console.log("AuthContext: Registration successful, redirecting to login");
       router.push("/login");
     } catch (error: unknown) {
-      console.error("AuthContext: Registration failed:", error);
       throw error;
     }
   };
@@ -76,12 +72,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (data.token) {
         Cookies.set("access_token", data.token, { expires: 7 });
-        console.log("AuthContext: Token saved to cookies");
       }
 
       if (data.user) {
         setUser(data.user);
-        console.log(" AuthContext: User state updated");
       }
 
       await fetchUser();
@@ -94,14 +88,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      console.log("AuthContext: Logging out...");
       await authAPI.logout();
     } catch (error) {
       console.error("AuthContext: Logout API failed:", error);
     } finally {
       Cookies.remove("access_token");
       setUser(null);
-      console.log("AuthContext: User cleared, redirecting to login");
       router.push("/login");
     }
   };
