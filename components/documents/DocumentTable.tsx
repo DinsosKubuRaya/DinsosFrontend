@@ -29,7 +29,8 @@ interface DocumentTableProps {
   isAdmin?: boolean;
   formatDate: (date: string) => string;
   onDownload: (doc: SharedDocument) => void;
-  onDeleteClick: (doc: SharedDocument) => void;
+  onDeleteClick?: (doc: SharedDocument) => void;
+  showEdit?: boolean;
 }
 
 export function DocumentTable({
@@ -38,12 +39,15 @@ export function DocumentTable({
   formatDate,
   onDownload,
   onDeleteClick,
+  showEdit = false,
 }: DocumentTableProps) {
   const getDetailLink = (id: string) =>
     isAdmin ? `/dashboard/documents/${id}` : `/dashboard/my-document/${id}`;
 
   const getEditLink = (id: string) =>
-    isAdmin ? "#" : `/dashboard/my-document/${id}/edit`;
+    isAdmin
+      ? `/dashboard/documents/${id}/edit`
+      : `/dashboard/my-document/${id}/edit`;
 
   return (
     <div className="hidden md:block overflow-x-auto">
@@ -98,14 +102,6 @@ export function DocumentTable({
                     </Button>
                   </Link>
 
-                  {!isAdmin && (
-                    <Link href={getEditLink(doc.id)}>
-                      <Button variant="ghost" size="icon" title="Edit">
-                        <Pencil className="h-4 w-4 text-blue-600" />
-                      </Button>
-                    </Link>
-                  )}
-
                   <Button
                     variant="ghost"
                     size="icon"
@@ -115,14 +111,24 @@ export function DocumentTable({
                     <Download className="h-4 w-4 text-green-600" />
                   </Button>
 
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    title="Hapus"
-                    onClick={() => onDeleteClick(doc)}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                  {showEdit && (
+                    <Link href={getEditLink(doc.id)}>
+                      <Button variant="ghost" size="icon" title="Edit">
+                        <Pencil className="h-4 w-4 text-blue-600" />
+                      </Button>
+                    </Link>
+                  )}
+
+                  {onDeleteClick && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="Hapus"
+                      onClick={() => onDeleteClick(doc)}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  )}
                 </div>
               </TableCell>
             </TableRow>

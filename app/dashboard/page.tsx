@@ -137,17 +137,19 @@ export default function AdminDocumentsPage() {
             <div>
               <DocumentTable
                 documents={sharedDocs}
-                isAdmin={true}
+                isAdmin={isAdmin}
                 formatDate={formatDate}
                 onDownload={handleDownload}
-                onDeleteClick={handleDeleteClick}
+                onDeleteClick={isAdmin ? handleDeleteClick : undefined}
+                showEdit={isAdmin}
               />
               <DocumentListMobile
                 documents={sharedDocs}
-                isAdmin={true}
+                isAdmin={isAdmin}
                 formatDate={formatDate}
                 onDownload={handleDownload}
-                onDeleteClick={handleDeleteClick}
+                onDeleteClick={isAdmin ? handleDeleteClick : undefined}
+                showEdit={isAdmin}
               />
             </div>
           )}
@@ -156,7 +158,9 @@ export default function AdminDocumentsPage() {
 
       <AlertDialog
         open={!!docToDelete}
-        onOpenChange={(open) => !open && setDocToDelete(null)}
+        onOpenChange={(open) => {
+          if (!open) setDocToDelete(null);
+        }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>

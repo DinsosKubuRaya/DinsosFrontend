@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-// Import SharedDocument dari file Table agar konsisten
 import { SharedDocument } from "./DocumentTable";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +25,8 @@ interface DocumentListMobileProps {
   isAdmin?: boolean;
   formatDate: (date: string) => string;
   onDownload: (doc: SharedDocument) => void;
-  onDeleteClick: (doc: SharedDocument) => void;
+  onDeleteClick?: (doc: SharedDocument) => void;
+  showEdit?: boolean;
 }
 
 export function DocumentListMobile({
@@ -35,9 +35,15 @@ export function DocumentListMobile({
   formatDate,
   onDownload,
   onDeleteClick,
+  showEdit = false,
 }: DocumentListMobileProps) {
   const getDetailLink = (id: string) =>
     isAdmin ? `/dashboard/documents/${id}` : `/dashboard/my-document/${id}`;
+
+  const getEditLink = (id: string) =>
+    isAdmin
+      ? `/dashboard/documents/${id}/edit`
+      : `/dashboard/my-document/${id}/edit`;
 
   return (
     <div className="block md:hidden border-t">
@@ -91,8 +97,8 @@ export function DocumentListMobile({
                   </DropdownMenuItem>
                 </Link>
 
-                {!isAdmin && (
-                  <Link href={`/dashboard/my-document/${doc.id}/edit`}>
+                {showEdit && (
+                  <Link href={getEditLink(doc.id)}>
                     <DropdownMenuItem>
                       <Pencil className="mr-2 h-4 w-4" />
                       Edit
@@ -104,14 +110,15 @@ export function DocumentListMobile({
                   <Download className="mr-2 h-4 w-4" />
                   Download
                 </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  className="text-destructive"
-                  onClick={() => onDeleteClick(doc)}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Hapus
-                </DropdownMenuItem>
+                {onDeleteClick && (
+                  <DropdownMenuItem
+                    className="text-destructive"
+                    onClick={() => onDeleteClick(doc)}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Hapus
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
