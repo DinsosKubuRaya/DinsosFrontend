@@ -107,7 +107,7 @@ export default function AdminDocumentsPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Semua Dokumen</h1>
           <p className="text-muted-foreground mt-2">
-            Kelola seluruh dokumen dalam sistem arsip
+            Kelola seluruh dokumen dalam sistem
           </p>
         </div>
         {isAdmin && (
