@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { notificationAPI } from "@/lib/api";
 import { Notification } from "@/types";
-import { Bell, Check } from "lucide-react";
+import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -61,7 +61,7 @@ export function NotificationBell() {
 
     loadNotifications();
 
-    // Polling setiap 60 detik (only if mounted)
+    // Polling setiap 1 menit
     const interval = setInterval(() => {
       if (isMounted) {
         fetchNotifications();

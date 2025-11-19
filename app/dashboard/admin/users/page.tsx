@@ -11,10 +11,19 @@ import { UserPlus } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { AxiosError } from "axios";
 import { getUserId } from "@/lib/userHelpers";
-import { UserTable } from "@/components/dashboards/TableUser";
-import { UserMobileCard } from "@/components/dashboards/UserMobileCard";
-import { UserFormDialog } from "@/components/dashboards/UserFormDialog";
-import { DeleteUserDialog } from "@/components/dashboards/DeleteUserDialog";
+
+import { UserTable } from "@/components/users/TableUser";
+import { UserMobileCard } from "@/components/users/UserMobileCard";
+import { UserFormDialog } from "@/components/users/UserFormDialog";
+import { DeleteUserDialog } from "@/components/users/DeleteUserDialog";
+
+// Definisi tipe data untuk Update User agar tidak perlu 'any'
+interface UserUpdateData {
+  name: string;
+  username: string;
+  role: "admin" | "staff";
+  password?: string;
+}
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -38,7 +47,6 @@ export default function AdminUsersPage() {
     setLoading(true);
     try {
       const data = await userAPI.getAll();
-
       if (Array.isArray(data)) {
         setUsers(data);
       } else {
@@ -47,7 +55,6 @@ export default function AdminUsersPage() {
       }
     } catch (error: unknown) {
       console.error("Error fetching users:", error);
-
       if (error instanceof AxiosError && error.response?.status !== 401) {
         const errorMsg = getErrorMessage(error);
         toast.error("Gagal memuat data user", {
@@ -78,17 +85,12 @@ export default function AdminUsersPage() {
     try {
       if (editingUser) {
         const userId = getUserId(editingUser);
-
         if (!userId) {
           throw new Error("User ID tidak valid");
         }
 
-        const updateData: {
-          name: string;
-          username: string;
-          password?: string;
-          role: "admin" | "staff";
-        } = {
+        // ✅ FIX: Gunakan tipe data eksplisit, bukan 'any'
+        const updateData: UserUpdateData = {
           name: formData.name.trim(),
           username: formData.username.trim(),
           role: formData.role,
@@ -126,7 +128,6 @@ export default function AdminUsersPage() {
 
   const handleEdit = (user: User) => {
     const userId = getUserId(user);
-
     if (!userId) {
       toast.error("ID user tidak valid");
       return;
@@ -151,7 +152,6 @@ export default function AdminUsersPage() {
     if (!userToDelete) return;
 
     const userId = getUserId(userToDelete);
-
     if (!userId) {
       toast.error("ID user tidak valid");
       return;
@@ -185,17 +185,9 @@ export default function AdminUsersPage() {
     setEditingUser(null);
   };
 
-  const handleDialogClose = (open: boolean) => {
-    setDialogOpen(open);
-    if (!open) {
-      resetForm();
-    }
-  };
-
   return (
     <AdminGuard>
       <div className="space-y-6 p-4 md:p-6">
-        {/* Header */}
         <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
@@ -219,7 +211,6 @@ export default function AdminUsersPage() {
           </Button>
         </div>
 
-        {/* User List */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg md:text-xl">Daftar User</CardTitle>
@@ -252,10 +243,14 @@ export default function AdminUsersPage() {
           </CardContent>
         </Card>
 
-        {/* Dialogs */}
         <UserFormDialog
           open={dialogOpen}
-          onOpenChange={handleDialogClose}
+          onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open) {
+              resetForm();
+            }
+          }}
           editingUser={editingUser}
           formData={formData}
           onFormChange={setFormData}

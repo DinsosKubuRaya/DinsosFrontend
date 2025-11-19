@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Menu, ShieldCheck, X } from "lucide-react";
-import { UserNav } from "@/components/dashboards/UserNav";
+import { UserNav } from "@/components/users/UserNav";
 import { User } from "@/types";
 import { NotificationBell } from "@/components/dashboards/NotificationBell";
 
