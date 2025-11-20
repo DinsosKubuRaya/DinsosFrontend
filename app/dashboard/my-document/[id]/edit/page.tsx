@@ -178,6 +178,7 @@ export default function EditDocumentStaffPage() {
                   value={formData.sender}
                   onChange={handleFormChange}
                   disabled={saving}
+                  className="border-black/40"
                   required
                 />
               </div>
@@ -192,7 +193,7 @@ export default function EditDocumentStaffPage() {
                   onValueChange={handleSelectChange}
                   disabled={saving}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="border-2 border-black/40 ">
                     <SelectValue placeholder="Pilih jenis surat" />
                   </SelectTrigger>
                   <SelectContent>
@@ -215,6 +216,7 @@ export default function EditDocumentStaffPage() {
                 value={formData.subject}
                 onChange={handleFormChange}
                 disabled={saving}
+                className="border-black/40"
                 required
               />
             </div>

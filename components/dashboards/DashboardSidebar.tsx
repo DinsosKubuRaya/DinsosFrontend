@@ -40,18 +40,18 @@ export function DashboardSidebar({
   // Navigation untuk semua user
   const commonNavigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Dokumen", href: "/dashboard/documents", icon: FileText }, // ← SEMUA USER
-    { name: "Activity Log", href: "/dashboard/activity-log", icon: Activity },
+    { name: "Dokumen", href: "/dashboard/documents", icon: FileText },
   ];
 
   // Navigation khusus Staff
   const staffNavigation = [
-    { name: "Dokumen Staff", href: "/dashboard/my-document", icon: FolderOpen },
+    { name: "Dokumen Saya", href: "/dashboard/my-document", icon: FolderOpen },
   ];
 
   // Navigation khusus Admin
   const adminPanelNavigation = [
     { name: "Kelola User", href: "/dashboard/admin/users", icon: Users },
+    { name: "Activity Log", href: "/dashboard/activity-log", icon: Activity },
   ];
 
   const isActive = (href: string) => {
