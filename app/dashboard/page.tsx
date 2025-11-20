@@ -147,14 +147,14 @@ export default function DashboardPage() {
                 isAdmin={isAdmin}
                 formatDate={formatDate}
                 onDownload={handleDownload}
-                isMyDocumentPage={false}
+                isMyDocumentPage={true}
               />
               <DocumentListMobile
                 documents={displayDocs}
                 isAdmin={isAdmin}
                 formatDate={formatDate}
                 onDownload={handleDownload}
-                isMyDocumentPage={false}
+                isMyDocumentPage={true}
               />
             </>
           ) : (

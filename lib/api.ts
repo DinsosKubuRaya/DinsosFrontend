@@ -1,7 +1,8 @@
+// FILE: lib/api.ts
+
 import axios, { AxiosError, AxiosResponse } from 'axios';
 import { Document, User, NotificationsApiResponse , ActivityLog, DocumentStaff, DocumentStaffApiResponse} from '@/types'; 
 import Cookies from 'js-cookie'; 
-
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
@@ -14,16 +15,6 @@ interface ApiResponse<T> {
     error?: string; 
     errors?: Record<string, string[]>;
 }
-
-// interface PaginatedApiResponse<T> {
-//     status?: 'success' | 'error';
-//     message?: string;
-//     data: T[];
-//     current_page: number;
-//     last_page: number;
-//     per_page: number;
-//     total: number;
-// }
 
 interface DocumentsApiResponse {
     documents: Document[];
@@ -59,7 +50,6 @@ api.interceptors.request.use((config) => {
     return config;
 });
 
-// Interceptor Response 
 api.interceptors.response.use(
     (response) => {
         return response;
@@ -81,11 +71,9 @@ api.interceptors.response.use(
     }
 );
 
-
 function extractData<T>(response: AxiosResponse<ApiResponse<T>>): T {
     return (response.data.data || response.data.user || response.data.users || response.data) as T;
 }
-
 
 // ==== Auth API =====
 export const authAPI = {
@@ -106,15 +94,15 @@ export const authAPI = {
         return response.data;
     },
 
- logout: async () => {
-    try {
-        const response = await api.post<ApiResponse<null>>('/logout', {}); 
-        return response.data;
-    } catch (error) {
-        console.error('Logout error:', error);
-        throw error;
-    }
-},
+    logout: async () => {
+        try {
+            const response = await api.post<ApiResponse<null>>('/logout', {}); 
+            return response.data;
+        } catch (error) {
+            console.error('Logout error:', error);
+            throw error;
+        }
+    },
 
     register: async (data: {
         name: string;
@@ -122,8 +110,6 @@ export const authAPI = {
         password: string;
         password_confirmation: string;
     }) => {
-        console.warn("PERINGATAN KEAMANAN: Memanggil endpoint /users/admin yang tidak terproteksi untuk registrasi.");
-
         const dataToSend = {
             name: data.name, 
             username: data.username,
@@ -135,8 +121,6 @@ export const authAPI = {
     },
 };
 
-
-
 // ==== Activity Log API ====
 export const activityLogAPI = {
   getAll: async () => {
@@ -147,8 +131,7 @@ export const activityLogAPI = {
   },
 };
 
-
-// ==== Document API ====
+// ==== Document API (ADMIN) ====
 export const documentAPI = {
     getAll: async (params?: {
         page?: number;
@@ -172,15 +155,27 @@ export const documentAPI = {
         return response.data;
     },
 
+    // UPDATE FIX: Support File Upload
     update: async (
         id: string | number, 
         data: {
             sender: string;
             subject: string;
             letter_type: 'masuk' | 'keluar';
+            file?: File | null;
         }
     ) => {
-        const response = await api.put<{ message: string; document: Document }>(`/documents/${id}`, data);
+        const formData = new FormData();
+        formData.append('sender', data.sender);
+        formData.append('subject', data.subject);
+        formData.append('letter_type', data.letter_type);
+        if (data.file) {
+            formData.append('file', data.file);
+        }
+
+        const response = await api.put<{ message: string; document: Document }>(`/documents/${id}`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
         return response.data;
     },
 
@@ -198,7 +193,7 @@ export const documentAPI = {
     },
 };
 
-// ==== Document Staff API ====
+// ==== Document Staff API (STAFF) ====
 export const documentStaffAPI = {
   getAll: async (params?: {
     page?: number;
@@ -233,18 +228,24 @@ export const documentStaffAPI = {
     };
   },
   
+  // UPDATE FIX: Support File Upload
   update: async (
     id: string,
     data: {
       sender: string;
       subject: string;
       letter_type: 'masuk' | 'keluar';
+      file?: File | null;
     }
   ) => {
     const formData = new FormData();
     formData.append('sender', data.sender);
     formData.append('subject', data.subject);
     formData.append('letter_type', data.letter_type);
+    
+    if (data.file) {
+      formData.append('file', data.file);
+    }
 
     const response = await api.put<{
       message: string;
@@ -266,13 +267,11 @@ export const documentStaffAPI = {
     return response.data;
   },
 
-  //Download endpoint
   download: async (id: string) => {
     const downloadUrl = `${API_URL}/document_staff/${id}/download`;
     window.open(downloadUrl, '_blank');
   },
 
-  //Download endpoint
   getDownloadUrl: (id: string) => {
     return `${API_URL}/document_staff/${id}/download`;
   },
@@ -284,11 +283,9 @@ export const userAPI = {
         try {
             const response = await api.get('/users');       
             const users = response.data?.users || response.data || [];            
-            
             if (!Array.isArray(users)) {
                 return [];
             }
-            
             return users;         
         } catch (error) {
             console.error("Error fetching users:", error);
@@ -309,7 +306,6 @@ export const userAPI = {
             password: data.password,
         };
 
-        // Panggil endpoint
         const response = await api.post<{ message: string; user: User }>(endpoint, dataToSend);
         return response.data.user;
     },
@@ -358,7 +354,6 @@ export const notificationAPI = {
   },
 };
 
-// Handle error axios
 export function getErrorMessage(error: unknown): string {
     if (error instanceof AxiosError) {
         if (error.response?.data?.error) {
@@ -366,9 +361,6 @@ export function getErrorMessage(error: unknown): string {
         }
         if (error.response?.data?.message) {
             return error.response.data.message;
-        }
-        if (error.response?.status === 404) {
-            return 'Endpoint tidak ditemukan. Periksa URL backend Anda.';
         }
         return error.message || 'Terjadi kesalahan';
     }

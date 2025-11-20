@@ -188,13 +188,14 @@ export default function DocumentsPage() {
             </div>
           ) : (
             <div>
+              {/* ✅ FIX: Ubah isMyDocumentPage sesuai role */}
               <DocumentTable
                 documents={documents}
                 isAdmin={isAdmin}
                 formatDate={formatDate}
                 onDownload={handleDownload}
                 onDeleteClick={setDocToDelete}
-                isMyDocumentPage={false}
+                isMyDocumentPage={!isAdmin}
               />
 
               <DocumentListMobile
@@ -203,7 +204,7 @@ export default function DocumentsPage() {
                 formatDate={formatDate}
                 onDownload={handleDownload}
                 onDeleteClick={setDocToDelete}
-                isMyDocumentPage={false}
+                isMyDocumentPage={!isAdmin}
               />
             </div>
           )}
