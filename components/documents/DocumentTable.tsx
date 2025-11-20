@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Trash2, Download, Pencil } from "lucide-react";
+import { Eye, Trash2, Pencil } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { getUserId, SharedDocument } from "@/types";
 
@@ -19,7 +19,7 @@ interface DocumentTableProps {
   documents: SharedDocument[];
   isAdmin?: boolean;
   formatDate: (date: string) => string;
-  onDownload: (doc: SharedDocument) => void;
+  onDownload?: (doc: SharedDocument) => void;
   onDeleteClick?: (doc: SharedDocument) => void;
   isMyDocumentPage?: boolean;
 }
@@ -28,7 +28,6 @@ export function DocumentTable({
   documents,
   isAdmin = false,
   formatDate,
-  onDownload,
   onDeleteClick,
   isMyDocumentPage = false,
 }: DocumentTableProps) {
@@ -61,9 +60,7 @@ export function DocumentTable({
               currentUserId && docUserId === String(currentUserId);
 
             const showEdit = isMyDocumentPage && (isOwner || isAdmin);
-
             const canDelete = isAdmin || (isMyDocumentPage && isOwner);
-
             const showDelete = onDeleteClick && canDelete;
 
             const displayFileName = doc.file_name
@@ -101,7 +98,11 @@ export function DocumentTable({
                 <TableCell>
                   <div className="flex items-center justify-end gap-2">
                     <Link href={getDetailLink(doc.id)}>
-                      <Button variant="ghost" size="icon" title="Lihat">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Lihat / Download"
+                      >
                         <Eye className="h-4 w-4" />
                       </Button>
                     </Link>
@@ -113,15 +114,6 @@ export function DocumentTable({
                         </Button>
                       </Link>
                     )}
-
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      title="Download"
-                      onClick={() => onDownload(doc)}
-                    >
-                      <Download className="h-4 w-4 text-green-600" />
-                    </Button>
 
                     {showDelete && onDeleteClick && (
                       <Button

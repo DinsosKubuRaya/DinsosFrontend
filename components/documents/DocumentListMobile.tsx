@@ -9,15 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Eye,
-  Trash2,
-  Download,
-  Pencil,
-  MoreVertical,
-  Clock,
-  User,
-} from "lucide-react";
+import { Eye, Trash2, Pencil, MoreVertical, Clock, User } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { getUserId, SharedDocument } from "@/types";
 
@@ -25,7 +17,7 @@ interface DocumentListMobileProps {
   documents: SharedDocument[];
   isAdmin?: boolean;
   formatDate: (date: string) => string;
-  onDownload: (doc: SharedDocument) => void;
+  onDownload?: (doc: SharedDocument) => void;
   onDeleteClick?: (doc: SharedDocument) => void;
   isMyDocumentPage?: boolean;
 }
@@ -34,7 +26,6 @@ export function DocumentListMobile({
   documents,
   isAdmin = false,
   formatDate,
-  onDownload,
   onDeleteClick,
   isMyDocumentPage = false,
 }: DocumentListMobileProps) {
@@ -94,7 +85,7 @@ export function DocumentListMobile({
                 <DropdownMenuContent align="end">
                   <Link href={getDetailLink(doc.id)}>
                     <DropdownMenuItem>
-                      <Eye className="mr-2 h-4 w-4" /> Lihat
+                      <Eye className="mr-2 h-4 w-4" /> Lihat / Download
                     </DropdownMenuItem>
                   </Link>
 
@@ -105,10 +96,6 @@ export function DocumentListMobile({
                       </DropdownMenuItem>
                     </Link>
                   )}
-
-                  <DropdownMenuItem onClick={() => onDownload(doc)}>
-                    <Download className="mr-2 h-4 w-4" /> Download
-                  </DropdownMenuItem>
 
                   {showDelete && onDeleteClick && (
                     <DropdownMenuItem
