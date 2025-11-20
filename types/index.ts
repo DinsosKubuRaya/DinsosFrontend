@@ -24,6 +24,7 @@ export interface ActivityLog {
 export function getUserId(user: User): string | undefined {
   return user.ID ?? user.id;
 }
+export type SharedDocument = Document | DocumentStaff;
 
 export interface Notification {
   id: string;

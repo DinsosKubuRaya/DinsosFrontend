@@ -4,14 +4,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { DocumentFilter } from "@/components/documents/DocumentFilter";
-import {
-  DocumentTable,
-  SharedDocument,
-} from "@/components/documents/DocumentTable";
+import { DocumentTable } from "@/components/documents/DocumentTable";
 import { DocumentListMobile } from "@/components/documents/DocumentListMobile";
 import { FileText, Upload } from "lucide-react";
 import { documentStaffAPI } from "@/lib/api";
-import { DocumentStaff } from "@/types";
+import { Document } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -24,13 +21,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useAuth } from "@/context/AuthContext";
+import { getUserId } from "@/lib/userHelpers";
 
 export default function MyDocumentPage() {
-  const [documents, setDocuments] = useState<DocumentStaff[]>([]);
+  const { user, isAdmin } = useAuth();
+  const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [docToDelete, setDocToDelete] = useState<DocumentStaff | null>(null);
+  const [docToDelete, setDocToDelete] = useState<Document | null>(null);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
@@ -40,9 +40,11 @@ export default function MyDocumentPage() {
   }, [searchTerm]);
 
   useEffect(() => {
-    fetchDocuments();
+    if (user || isAdmin) {
+      fetchDocuments();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search]);
+  }, [search, user, isAdmin]);
 
   const fetchDocuments = async () => {
     setLoading(true);
@@ -51,7 +53,22 @@ export default function MyDocumentPage() {
       if (search) params.search = search;
 
       const response = await documentStaffAPI.getAll(params);
-      setDocuments(response.documents || []);
+      let docs = response.documents || [];
+
+      if (!isAdmin) {
+        if (!user) {
+          setDocuments([]);
+          return;
+        }
+
+        const currentUserId = String(getUserId(user));
+        docs = docs.filter((doc) => {
+          const docUserId = doc.user_id ? String(doc.user_id) : "";
+          return docUserId === currentUserId;
+        });
+      }
+
+      setDocuments(docs);
     } catch (error) {
       console.error("Error fetching documents:", error);
       toast.error("Gagal memuat dokumen");
@@ -75,7 +92,7 @@ export default function MyDocumentPage() {
     }
   };
 
-  const handleDownload = async (doc: SharedDocument) => {
+  const handleDownload = async (doc: Document) => {
     try {
       await documentStaffAPI.download(doc.id);
       toast.success("Membuka file...");
@@ -85,8 +102,8 @@ export default function MyDocumentPage() {
     }
   };
 
-  const handleDeleteClick = (doc: SharedDocument) => {
-    setDocToDelete(doc as unknown as DocumentStaff);
+  const handleDeleteClick = (doc: Document) => {
+    setDocToDelete(doc);
   };
 
   const formatDate = (dateString: string) => {
@@ -101,13 +118,13 @@ export default function MyDocumentPage() {
     }
   };
 
-  const sharedDocs = documents as unknown as SharedDocument[];
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Arsip Staff</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {isAdmin ? "Monitoring Arsip Staff" : "Arsip Dokumen Saya"}
+          </h1>
           <p className="text-muted-foreground mt-2">
             Kelola dokumen surat staff
           </p>
@@ -131,22 +148,26 @@ export default function MyDocumentPage() {
           ) : documents.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <FileText className="mx-auto h-12 w-12 mb-4 opacity-50" />
-              <p>Belum ada dokumen yang diupload</p>
+              <p>Belum ada dokumen</p>
             </div>
           ) : (
             <div>
               <DocumentTable
-                documents={sharedDocs}
+                documents={documents}
+                isAdmin={isAdmin}
                 formatDate={formatDate}
                 onDownload={handleDownload}
                 onDeleteClick={handleDeleteClick}
+                isMyDocumentPage={true}
               />
 
               <DocumentListMobile
-                documents={sharedDocs}
+                documents={documents}
+                isAdmin={isAdmin}
                 formatDate={formatDate}
                 onDownload={handleDownload}
                 onDeleteClick={handleDeleteClick}
+                isMyDocumentPage={true}
               />
             </div>
           )}
@@ -164,7 +185,7 @@ export default function MyDocumentPage() {
             <AlertDialogTitle>Anda yakin ingin menghapus?</AlertDialogTitle>
             <AlertDialogDescription>
               Dokumen <span className="font-bold">{docToDelete?.subject}</span>{" "}
-              akan dihapus secara permanen dari arsip Anda.
+              akan dihapus secara permanen.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

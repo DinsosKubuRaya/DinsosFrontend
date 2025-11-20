@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { SharedDocument } from "./DocumentTable";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -19,6 +18,8 @@ import {
   Clock,
   User,
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { getUserId, SharedDocument } from "@/types";
 
 interface DocumentListMobileProps {
   documents: SharedDocument[];
@@ -26,7 +27,7 @@ interface DocumentListMobileProps {
   formatDate: (date: string) => string;
   onDownload: (doc: SharedDocument) => void;
   onDeleteClick?: (doc: SharedDocument) => void;
-  showEdit?: boolean;
+  isMyDocumentPage?: boolean;
 }
 
 export function DocumentListMobile({
@@ -35,97 +36,94 @@ export function DocumentListMobile({
   formatDate,
   onDownload,
   onDeleteClick,
-  showEdit = false,
+  isMyDocumentPage = false,
 }: DocumentListMobileProps) {
-  const getDetailLink = (id: string) =>
-    isAdmin ? `/dashboard/documents/${id}` : `/dashboard/my-document/${id}`;
+  const { user } = useAuth();
+  const currentUserId = user ? getUserId(user) : null;
 
-  const getEditLink = (id: string) =>
-    isAdmin
-      ? `/dashboard/documents/${id}/edit`
-      : `/dashboard/my-document/${id}/edit`;
+  const getDetailLink = (id: string) =>
+    isMyDocumentPage
+      ? `/dashboard/my-document/${id}`
+      : `/dashboard/documents/${id}`;
 
   return (
     <div className="block md:hidden border-t">
-      {documents.map((doc) => (
-        <div
-          key={doc.id}
-          className="border-b p-4 grid grid-cols-[1fr_auto] gap-4"
-        >
-          <div className="space-y-2">
-            <span className="font-medium line-clamp-2">{doc.subject}</span>
-            <div className="text-sm text-muted-foreground space-y-1">
-              <p>
-                <span className="font-medium text-foreground">Pengirim:</span>{" "}
-                {doc.sender}
-              </p>
+      {documents.map((doc) => {
+        const docUserId = doc.user_id ? String(doc.user_id) : "";
+        const isOwner = currentUserId && docUserId === String(currentUserId);
 
-              {isAdmin && (
+        const showEdit = isMyDocumentPage && (isOwner || isAdmin);
+        const canDelete = isAdmin || (isMyDocumentPage && isOwner);
+        const showDelete = onDeleteClick && canDelete;
+
+        return (
+          <div
+            key={doc.id}
+            className="border-b p-4 grid grid-cols-[1fr_auto] gap-4"
+          >
+            <div className="space-y-2">
+              <span className="font-medium line-clamp-2">{doc.subject}</span>
+              <div className="text-sm text-muted-foreground space-y-1">
+                <p>
+                  <span className="font-medium text-foreground">Pengirim:</span>{" "}
+                  {doc.sender}
+                </p>
                 <p className="flex items-center gap-2">
                   <User className="h-3 w-3" />
                   {doc.user_name || doc.user?.name || "-"}
                 </p>
-              )}
-
-              <p className="flex items-center gap-2">
-                <Clock className="h-3 w-3" />
-                {formatDate(doc.created_at)}
-              </p>
-            </div>
-            <div>
+                <p className="flex items-center gap-2">
+                  <Clock className="h-3 w-3" />
+                  {formatDate(doc.created_at)}
+                </p>
+              </div>
               <Badge
-                variant={
-                  doc.letter_type === "masuk" ? "default" : "destructive"
-                }
-                className="capitalize"
+                variant={doc.letter_type === "masuk" ? "default" : "secondary"}
               >
-                {doc.letter_type === "masuk" ? "Surat Masuk" : "Surat Keluar"}
+                {doc.letter_type}
               </Badge>
             </div>
-          </div>
 
-          <div className="flex flex-col justify-start">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <Link href={getDetailLink(doc.id)}>
-                  <DropdownMenuItem>
-                    <Eye className="mr-2 h-4 w-4" />
-                    Lihat Detail
-                  </DropdownMenuItem>
-                </Link>
-
-                {showEdit && (
-                  <Link href={getEditLink(doc.id)}>
+            <div className="flex flex-col justify-start">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <Link href={getDetailLink(doc.id)}>
                     <DropdownMenuItem>
-                      <Pencil className="mr-2 h-4 w-4" />
-                      Edit
+                      <Eye className="mr-2 h-4 w-4" /> Lihat
                     </DropdownMenuItem>
                   </Link>
-                )}
 
-                <DropdownMenuItem onClick={() => onDownload(doc)}>
-                  <Download className="mr-2 h-4 w-4" />
-                  Download
-                </DropdownMenuItem>
-                {onDeleteClick && (
-                  <DropdownMenuItem
-                    className="text-destructive"
-                    onClick={() => onDeleteClick(doc)}
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Hapus
+                  {showEdit && (
+                    <Link href={`/dashboard/my-document/${doc.id}/edit`}>
+                      <DropdownMenuItem>
+                        <Pencil className="mr-2 h-4 w-4" /> Edit
+                      </DropdownMenuItem>
+                    </Link>
+                  )}
+
+                  <DropdownMenuItem onClick={() => onDownload(doc)}>
+                    <Download className="mr-2 h-4 w-4" /> Download
                   </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+
+                  {showDelete && onDeleteClick && (
+                    <DropdownMenuItem
+                      className="text-destructive"
+                      onClick={() => onDeleteClick(doc)}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" /> Hapus
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

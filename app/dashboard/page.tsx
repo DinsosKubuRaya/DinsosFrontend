@@ -1,189 +1,169 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { toast } from "sonner";
-import { Upload, FileText } from "lucide-react";
-
-import { documentAPI } from "@/lib/api";
-import { Document } from "@/types";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { DocumentFilter } from "@/components/documents/DocumentFilter";
-import {
-  DocumentTable,
-  SharedDocument,
-} from "@/components/documents/DocumentTable";
-import { DocumentListMobile } from "@/components/documents/DocumentListMobile";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FileText, Mail, Send, Activity } from "lucide-react";
+import { documentStaffAPI } from "@/lib/api";
+import { Document, DocumentStaff } from "@/types";
 import { useAuth } from "@/context/AuthContext";
+import { getUserId } from "@/lib/userHelpers";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { DocumentTable } from "@/components/documents/DocumentTable";
+import { DocumentListMobile } from "@/components/documents/DocumentListMobile";
 
-export default function AdminDocumentsPage() {
-  const { isAdmin } = useAuth();
-  const [documents, setDocuments] = useState<Document[]>([]);
+export default function DashboardPage() {
+  const { user, isAdmin } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [docToDelete, setDocToDelete] = useState<Document | null>(null);
+  const [stats, setStats] = useState({ total: 0, masuk: 0, keluar: 0 });
+
+  const [recentDocuments, setRecentDocuments] = useState<DocumentStaff[]>([]);
 
   useEffect(() => {
-    const delay = setTimeout(() => setSearch(searchTerm), 500);
-    return () => clearTimeout(delay);
-  }, [searchTerm]);
-
-  useEffect(() => {
-    fetchDocuments();
+    if (user || isAdmin) {
+      fetchDashboardData();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search]);
+  }, [user, isAdmin]);
 
-  const fetchDocuments = async () => {
+  const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const params: { search?: string } = {};
-      if (search) params.search = search;
-      const response = await documentAPI.getAll(params);
-      setDocuments(response.documents || []);
+      const response = await documentStaffAPI.getAll();
+      let docs = response.documents || [];
+
+      if (!isAdmin) {
+        if (!user) return;
+        const currentUserId = String(getUserId(user));
+
+        docs = docs.filter((doc) => {
+          const docUserId = doc.user_id ? String(doc.user_id) : "";
+          return docUserId === currentUserId;
+        });
+      }
+
+      setStats({
+        total: docs.length,
+        masuk: docs.filter((d) => d.letter_type === "masuk").length,
+        keluar: docs.filter((d) => d.letter_type === "keluar").length,
+      });
+
+      const sortedDocs = docs.sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      setRecentDocuments(sortedDocs.slice(0, 5));
     } catch (error) {
-      console.error("Error fetching documents:", error);
-      toast.error("Gagal memuat dokumen");
+      console.error("Error fetching dashboard data:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const executeDelete = async () => {
-    if (!docToDelete) return;
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const handleDownload = async (doc: Document) => {
     try {
-      await documentAPI.delete(docToDelete.id);
-      toast.success("Dokumen berhasil dihapus");
-      fetchDocuments();
-    } catch (error) {
-      console.error("Error deleting:", error);
-      toast.error("Gagal menghapus dokumen");
-    } finally {
-      setDocToDelete(null);
+      await documentStaffAPI.download(doc.id);
+    } catch (e) {
+      console.error(e);
     }
   };
 
-  const handleDownload = async (doc: SharedDocument) => {
-    try {
-      await documentAPI.download(doc.id);
-      toast.success("Membuka file...");
-    } catch {
-      toast.error("Gagal membuka file");
-    }
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-100px)]">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
-  const handleDeleteClick = (doc: SharedDocument) => {
-    setDocToDelete(doc as unknown as Document);
-  };
-
-  const formatDate = (date: string) => {
-    try {
-      return new Date(date).toLocaleDateString("id-ID", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
-    } catch {
-      return date;
-    }
-  };
-
-  const sharedDocs = documents as unknown as SharedDocument[];
+  const displayDocs = recentDocuments as unknown as Document[];
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Semua Dokumen</h1>
-          <p className="text-muted-foreground mt-2">
-            Kelola seluruh dokumen dalam sistem
-          </p>
-        </div>
-        {isAdmin && (
-          <Link href="/dashboard/documents/upload">
-            <Button>
-              <Upload className="mr-2 h-4 w-4" />
-              Upload Dokumen
-            </Button>
-          </Link>
-        )}
+      <div>
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <p className="text-muted-foreground">
+          Selamat datang, <span className="font-semibold">{user?.name}</span>
+        </p>
       </div>
 
-      <DocumentFilter searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row justify-between pb-2">
+            <CardTitle className="text-sm font-medium">
+              Total Dokumen {isAdmin ? "(Semua Staff)" : "(Saya)"}
+            </CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.total}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Surat Masuk</CardTitle>
+            <Mail className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.masuk}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Surat Keluar</CardTitle>
+            <Send className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.keluar}</div>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5" /> Dokumen Terbaru
+          </CardTitle>
+          <Link href="/dashboard/my-document">
+            <Button variant="outline" size="sm">
+              Lihat Semua
+            </Button>
+          </Link>
+        </CardHeader>
         <CardContent className="p-0">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-            </div>
-          ) : documents.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <FileText className="mx-auto h-12 w-12 mb-4 opacity-50" />
-              <p>Tidak ada dokumen ditemukan</p>
-            </div>
-          ) : (
-            <div>
+          {recentDocuments.length > 0 ? (
+            <>
               <DocumentTable
-                documents={sharedDocs}
+                documents={displayDocs}
                 isAdmin={isAdmin}
                 formatDate={formatDate}
                 onDownload={handleDownload}
-                onDeleteClick={isAdmin ? handleDeleteClick : undefined}
-                showEdit={isAdmin}
+                isMyDocumentPage={false}
               />
               <DocumentListMobile
-                documents={sharedDocs}
+                documents={displayDocs}
                 isAdmin={isAdmin}
                 formatDate={formatDate}
                 onDownload={handleDownload}
-                onDeleteClick={isAdmin ? handleDeleteClick : undefined}
-                showEdit={isAdmin}
+                isMyDocumentPage={false}
               />
+            </>
+          ) : (
+            <div className="p-8 text-center text-muted-foreground">
+              Belum ada aktivitas dokumen staff.
             </div>
           )}
         </CardContent>
       </Card>
-
-      <AlertDialog
-        open={!!docToDelete}
-        onOpenChange={(open) => {
-          if (!open) setDocToDelete(null);
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Anda yakin ingin menghapus?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Dokumen{" "}
-              <span className="font-bold">
-                &quot;{docToDelete?.subject}&quot;
-              </span>{" "}
-              akan dihapus permanen.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive hover:bg-destructive/90"
-              onClick={executeDelete}
-            >
-              Ya, Hapus
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
