@@ -65,8 +65,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw error;
     }
   };
-  // ------------------------------------------
 
+  // --- LOGIN ---
   const login = async (username: string, password: string) => {
     try {
       const data = await authAPI.login(username, password);
@@ -87,6 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // --- LOGOUT ---
   const logout = async () => {
     try {
       await authAPI.logout();

@@ -1,5 +1,3 @@
-// FILE: lib/api.ts
-
 import axios, { AxiosError, AxiosResponse } from 'axios';
 import { Document, User, NotificationsApiResponse , ActivityLog, DocumentStaff, DocumentStaffApiResponse} from '@/types'; 
 import Cookies from 'js-cookie'; 
@@ -154,8 +152,6 @@ export const documentAPI = {
         });
         return response.data;
     },
-
-    // UPDATE FIX: Support File Upload
     update: async (
         id: string | number, 
         data: {
@@ -193,7 +189,7 @@ export const documentAPI = {
     },
 };
 
-// ==== Document Staff API (STAFF) ====
+// ==== Document Staff API  ====
 export const documentStaffAPI = {
   getAll: async (params?: {
     page?: number;
@@ -227,8 +223,6 @@ export const documentStaffAPI = {
       document: response.data.document,
     };
   },
-  
-  // UPDATE FIX: Support File Upload
   update: async (
     id: string,
     data: {

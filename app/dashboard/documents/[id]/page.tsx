@@ -44,7 +44,6 @@ export default function AdminDocumentDetail() {
     letter_type: "masuk",
   });
 
-  // ✅ PROTEKSI: Redirect jika bukan admin
   useEffect(() => {
     if (!isAdmin) {
       toast.error("Anda tidak memiliki akses ke halaman ini");
@@ -114,7 +113,6 @@ export default function AdminDocumentDetail() {
     }
   };
 
-  // ✅ Tampilkan loading atau halaman akses ditolak
   if (!isAdmin) {
     return (
       <div className="flex flex-col items-center justify-center h-[400px] gap-4">
@@ -148,7 +146,6 @@ export default function AdminDocumentDetail() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleUpdate} className="space-y-4">
-            {/* FILE INFO SAAT INI */}
             <div className="p-3 bg-muted/50 rounded-md border flex justify-between items-center mb-4">
               <div className="text-sm">
                 <span className="text-muted-foreground block">

@@ -11,24 +11,20 @@ export function useProtectedRoute(requireAdmin = false) {
   const hasChecked = useRef(false);
 
   useEffect(() => {
-    // Wait for auth to finish loading
     if (loading) {
       return;
     }
 
-    // Only check once
     if (hasChecked.current) {
       return;
     }
 
     hasChecked.current = true;
 
-    // Check authentication
     if (!user) {
       router.push("/login");
       return;
     }
-    // Check admin requirement
     if (requireAdmin && !isAdmin) {
       router.push("/dashboard");
       return;

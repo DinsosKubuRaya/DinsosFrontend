@@ -21,7 +21,6 @@ export default function UploadDocumentPage() {
     if (!user) return;
     setLoading(true);
     try {
-      // Gunakan API Admin
       const response = await documentAPI.create(formData);
       toast.success("Dokumen berhasil diupload!", {
         description: response.message || "File telah tersimpan",
@@ -71,7 +70,6 @@ export default function UploadDocumentPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Gunakan komponen form modular */}
           <DocumentUploadForm
             onSubmit={handleUpload}
             loading={loading}

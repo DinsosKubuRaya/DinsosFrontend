@@ -93,7 +93,7 @@ export function DashboardSidebar({
           );
         })}
 
-        {/* Staff Navigation (Hanya Staff) */}
+        {/* Staff Navigation */}
         {!isAdmin && (
           <>
             <div className="my-4 border-t pt-4" />

@@ -17,7 +17,6 @@ import { UserMobileCard } from "@/components/users/UserMobileCard";
 import { UserFormDialog } from "@/components/users/UserFormDialog";
 import { DeleteUserDialog } from "@/components/users/DeleteUserDialog";
 
-// Definisi tipe data untuk Update User agar tidak perlu 'any'
 interface UserUpdateData {
   name: string;
   username: string;
@@ -89,7 +88,6 @@ export default function AdminUsersPage() {
           throw new Error("User ID tidak valid");
         }
 
-        // ✅ FIX: Gunakan tipe data eksplisit, bukan 'any'
         const updateData: UserUpdateData = {
           name: formData.name.trim(),
           username: formData.username.trim(),

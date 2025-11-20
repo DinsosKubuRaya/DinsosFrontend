@@ -61,7 +61,6 @@ export function NotificationBell() {
 
     loadNotifications();
 
-    // Polling setiap 1 menit
     const interval = setInterval(() => {
       if (isMounted) {
         fetchNotifications();
@@ -88,7 +87,6 @@ export function NotificationBell() {
 
       setIsOpen(false);
 
-      // Navigate ke link notifikasi
       if (notification.link) {
         router.push(notification.link);
       }

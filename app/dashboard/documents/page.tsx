@@ -188,7 +188,6 @@ export default function DocumentsPage() {
             </div>
           ) : (
             <div>
-              {/* ✅ FIX: Ubah isMyDocumentPage sesuai role */}
               <DocumentTable
                 documents={documents}
                 isAdmin={isAdmin}

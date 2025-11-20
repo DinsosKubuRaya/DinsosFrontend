@@ -56,7 +56,9 @@ export function UserFormDialog({
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Nama Lengkap</Label>
+            <Label htmlFor="name">
+              Nama Lengkap <span className="text-destructive">*</span>
+            </Label>
             <Input
               id="name"
               value={formData.name}
@@ -69,7 +71,9 @@ export function UserFormDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
+            <Label htmlFor="username">
+              Username <span className="text-destructive">*</span>
+            </Label>
             <Input
               id="username"
               value={formData.username}
@@ -83,7 +87,8 @@ export function UserFormDialog({
 
           <div className="space-y-2">
             <Label htmlFor="password">
-              Password {editingUser && "(Kosongkan jika tidak diubah)"}
+              Password {editingUser && "(Kosongkan jika tidak diubah)"}{" "}
+              {!editingUser && <span className="text-destructive">*</span>}
             </Label>
             <Input
               id="password"
@@ -118,8 +123,14 @@ export function UserFormDialog({
 
           <div className="flex flex-col gap-2 pt-4 md:flex-row">
             <Button type="submit" disabled={loading} className="flex-1">
-              {loading ? <Spinner className="mr-2 h-4 w-4" /> : null}
-              {editingUser ? "Update" : "Tambah"} User
+              {loading ? (
+                <>
+                  <Spinner className="mr-2 h-4 w-4" />
+                  Menyimpan...
+                </>
+              ) : (
+                <>{editingUser ? "Update" : "Tambah"} User</>
+              )}
             </Button>
             <Button
               type="button"

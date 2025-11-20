@@ -92,7 +92,10 @@ export default function DashboardPage() {
       <div>
         <h1 className="text-3xl font-bold">Dashboard</h1>
         <p className="text-muted-foreground">
-          Selamat datang, <span className="font-semibold">{user?.name}</span>
+          Selamat datang,{" "}
+          <span className="font-semibold text-primary uppercase">
+            {user?.name}
+          </span>
         </p>
       </div>
 

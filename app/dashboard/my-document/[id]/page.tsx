@@ -18,7 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"; // 1. Import Alert Dialog
+} from "@/components/ui/alert-dialog";
 import {
   ArrowLeft,
   Edit,
@@ -65,7 +65,7 @@ export default function DocumentStaffDetailPage() {
     return filename.split(".").pop()?.toLowerCase() || "";
   };
 
-  // ✅ SMART PREVIEW
+  // SMART PREVIEW
   const handlePreview = () => {
     if (!documentData?.file_name) {
       toast.error("Link file tidak ditemukan");
@@ -99,7 +99,7 @@ export default function DocumentStaffDetailPage() {
     }
   };
 
-  // 2. Fungsi Delete yang akan dipanggil saat tombol konfirmasi ditekan
+  // Fungsi Delete
   const executeDelete = async () => {
     setLoading(true);
     try {
@@ -109,7 +109,7 @@ export default function DocumentStaffDetailPage() {
     } catch (error) {
       console.error("Error deleting document:", error);
       toast.error("Gagal menghapus dokumen.");
-      setLoading(false); // Stop loading jika gagal
+      setLoading(false);
     }
   };
 
@@ -198,7 +198,6 @@ export default function DocumentStaffDetailPage() {
             Download
           </Button>
 
-          {/* 3. Implementasi Alert Dialog untuk Hapus */}
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive" disabled={loading}>
