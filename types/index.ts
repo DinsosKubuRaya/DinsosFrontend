@@ -10,7 +10,6 @@ export type User = {
   UpdatedAt?: string;
 };
 
-
 export interface ActivityLog {
   id: string;
   user_id: string | null;
@@ -20,25 +19,10 @@ export interface ActivityLog {
   created_at: string;
 }
 
-
 export function getUserId(user: User): string | undefined {
   return user.ID ?? user.id;
 }
-export type SharedDocument = Document | DocumentStaff;
 
-export interface Notification {
-  id: string;
-  user_id: string;
-  message: string;
-  is_read: boolean;
-  link: string;
-  created_at: string; 
-}
-
-export interface NotificationsApiResponse {
-  notifications: Notification[];
-  unread_count: number;
-}
 
 export type Document = {
   id: string;   
@@ -54,6 +38,7 @@ export type Document = {
   user_name?: string;
   created_at: string;
   updated_at: string;
+  source?: string;
 };
 
 export interface DocumentStaff {
@@ -70,6 +55,24 @@ export interface DocumentStaff {
   user_name?: string;
   created_at: string;
   updated_at: string;
+  source?: string;
+}
+
+
+export type SharedDocument = Document | DocumentStaff;
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  message: string;
+  is_read: boolean;
+  link: string;
+  created_at: string; 
+}
+
+export interface NotificationsApiResponse {
+  notifications: Notification[];
+  unread_count: number;
 }
 
 export interface Category {

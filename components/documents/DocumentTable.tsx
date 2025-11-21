@@ -11,7 +11,13 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Trash2, Pencil } from "lucide-react";
+import {
+  Eye,
+  Trash2,
+  Pencil,
+  ShieldCheck,
+  User as UserIcon,
+} from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { getUserId, SharedDocument } from "@/types";
 
@@ -22,6 +28,7 @@ interface DocumentTableProps {
   onDownload?: (doc: SharedDocument) => void;
   onDeleteClick?: (doc: SharedDocument) => void;
   isMyDocumentPage?: boolean;
+  showSourceColumn?: boolean;
 }
 
 export function DocumentTable({
@@ -30,6 +37,7 @@ export function DocumentTable({
   formatDate,
   onDeleteClick,
   isMyDocumentPage = false,
+  showSourceColumn = true,
 }: DocumentTableProps) {
   const { user } = useAuth();
   const currentUserId = user ? getUserId(user) : null;
@@ -44,7 +52,10 @@ export function DocumentTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Pengirim</TableHead>
+            {showSourceColumn && (
+              <TableHead className="w-[100px]">Sumber</TableHead>
+            )}
+
             <TableHead>Subjek</TableHead>
             <TableHead>Nama File</TableHead>
             <TableHead>Tipe</TableHead>
@@ -58,25 +69,61 @@ export function DocumentTable({
             const docUserId = doc.user_id ? String(doc.user_id) : "";
             const isOwner =
               currentUserId && docUserId === String(currentUserId);
+            const isAdminDoc = doc.source === "document";
+            const showEdit = isAdmin
+              ? true
+              : isMyDocumentPage && isOwner && !isAdminDoc;
 
-            const showEdit = isMyDocumentPage && (isOwner || isAdmin);
-            const canDelete = isAdmin || (isMyDocumentPage && isOwner);
-            const showDelete = onDeleteClick && canDelete;
+            const showDelete = isAdmin
+              ? true
+              : isMyDocumentPage && isOwner && !isAdminDoc;
 
             const displayFileName = doc.file_name
               ? doc.file_name.split("/").pop()
               : "-";
 
             return (
-              <TableRow key={doc.id}>
-                <TableCell className="font-medium">{doc.sender}</TableCell>
-                <TableCell
-                  className="max-w-[200px] truncate"
-                  title={doc.subject}
-                >
-                  {doc.subject}
+              <TableRow
+                key={doc.id}
+                className={
+                  isAdminDoc && showSourceColumn
+                    ? "bg-blue-50/40 hover:bg-blue-50/60"
+                    : ""
+                }
+              >
+                {/* Kolom Sumber */}
+                {showSourceColumn && (
+                  <TableCell>
+                    {isAdminDoc ? (
+                      <Badge className="bg-blue-600 hover:bg-blue-700 flex w-fit items-center gap-1">
+                        <ShieldCheck className="h-3 w-3" /> Admin
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="text-gray-600 flex w-fit items-center gap-1 border-gray-400"
+                      >
+                        <UserIcon className="h-3 w-3" /> Staff
+                      </Badge>
+                    )}
+                  </TableCell>
+                )}
+
+                <TableCell className="font-medium max-w-[250px]">
+                  <div
+                    className="truncate text-sm font-semibold"
+                    title={doc.subject}
+                  >
+                    {doc.subject}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1 truncate">
+                    Pengirim: {doc.sender}
+                  </div>
                 </TableCell>
-                <TableCell className="font-mono text-sm max-w-[150px] truncate">
+                <TableCell
+                  className="font-mono text-xs max-w-[150px] truncate text-muted-foreground"
+                  title={displayFileName}
+                >
                   {displayFileName}
                 </TableCell>
                 <TableCell>

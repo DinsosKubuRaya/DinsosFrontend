@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { documentStaffAPI, getErrorMessage } from "@/lib/api"; // API Staff
+import { documentStaffAPI, getErrorMessage } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Upload as UploadIcon } from "lucide-react";
 import { DocumentUploadForm } from "@/components/documents/DocumentUploadForm";
@@ -74,6 +74,7 @@ export default function UploadDocumentStaffPage() {
             onSubmit={handleUpload}
             loading={loading}
             cancelHref="/dashboard/my-document"
+            isStaff={true}
           />
         </CardContent>
       </Card>

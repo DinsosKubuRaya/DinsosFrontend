@@ -9,7 +9,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Eye, Trash2, Pencil, MoreVertical, Clock, User } from "lucide-react";
+import {
+  Eye,
+  Trash2,
+  Pencil,
+  MoreVertical,
+  Clock,
+  User,
+  ShieldCheck,
+} from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { getUserId, SharedDocument } from "@/types";
 
@@ -20,6 +28,7 @@ interface DocumentListMobileProps {
   onDownload?: (doc: SharedDocument) => void;
   onDeleteClick?: (doc: SharedDocument) => void;
   isMyDocumentPage?: boolean;
+  showSourceBadge?: boolean;
 }
 
 export function DocumentListMobile({
@@ -28,6 +37,7 @@ export function DocumentListMobile({
   formatDate,
   onDeleteClick,
   isMyDocumentPage = false,
+  showSourceBadge = false,
 }: DocumentListMobileProps) {
   const { user } = useAuth();
   const currentUserId = user ? getUserId(user) : null;
@@ -43,33 +53,63 @@ export function DocumentListMobile({
         const docUserId = doc.user_id ? String(doc.user_id) : "";
         const isOwner = currentUserId && docUserId === String(currentUserId);
 
-        const showEdit = isMyDocumentPage && (isOwner || isAdmin);
-        const canDelete = isAdmin || (isMyDocumentPage && isOwner);
-        const showDelete = onDeleteClick && canDelete;
+        const isAdminDoc = doc.source === "document";
+
+        const showEdit = isAdmin
+          ? true
+          : isMyDocumentPage && isOwner && !isAdminDoc;
+
+        const showDelete = isAdmin
+          ? true
+          : isMyDocumentPage && isOwner && !isAdminDoc;
 
         return (
           <div
             key={doc.id}
-            className="border-b p-4 grid grid-cols-[1fr_auto] gap-4"
+            className={`border-b p-4 grid grid-cols-[1fr_auto] gap-4 ${
+              isAdminDoc && showSourceBadge ? "bg-blue-50/30" : ""
+            }`}
           >
             <div className="space-y-2">
-              <span className="font-medium line-clamp-2">{doc.subject}</span>
-              <div className="text-sm text-muted-foreground space-y-1">
+              <div className="flex items-start justify-between gap-2">
+                <span className="font-medium line-clamp-2 text-sm">
+                  {doc.subject}
+                </span>
+
+                {showSourceBadge &&
+                  (isAdminDoc ? (
+                    <Badge className="bg-blue-600 h-5 px-1.5 text-[10px] flex items-center gap-1 shrink-0 hover:bg-blue-700">
+                      <ShieldCheck className="h-3 w-3" /> Admin
+                    </Badge>
+                  ) : (
+                    <Badge
+                      variant="outline"
+                      className="h-5 px-1.5 text-[10px] flex items-center gap-1 shrink-0 border-gray-400 text-gray-600"
+                    >
+                      <User className="h-3 w-3" /> Staff
+                    </Badge>
+                  ))}
+              </div>
+
+              <div className="text-xs text-muted-foreground space-y-1">
                 <p>
                   <span className="font-medium text-foreground">Pengirim:</span>{" "}
                   {doc.sender}
                 </p>
-                <p className="flex items-center gap-2">
-                  <User className="h-3 w-3" />
-                  {doc.user_name || doc.user?.name || "-"}
-                </p>
-                <p className="flex items-center gap-2">
-                  <Clock className="h-3 w-3" />
-                  {formatDate(doc.created_at)}
-                </p>
+                <div className="flex items-center justify-between">
+                  <p className="flex items-center gap-2">
+                    <User className="h-3 w-3" />
+                    {doc.user_name || doc.user?.name || "-"}
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <Clock className="h-3 w-3" />
+                    {formatDate(doc.created_at)}
+                  </p>
+                </div>
               </div>
               <Badge
                 variant={doc.letter_type === "masuk" ? "default" : "secondary"}
+                className="text-[10px]"
               >
                 {doc.letter_type}
               </Badge>
@@ -78,7 +118,7 @@ export function DocumentListMobile({
             <div className="flex flex-col justify-start">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -99,7 +139,7 @@ export function DocumentListMobile({
 
                   {showDelete && onDeleteClick && (
                     <DropdownMenuItem
-                      className="text-destructive"
+                      className="text-destructive focus:text-destructive"
                       onClick={() => onDeleteClick(doc)}
                     >
                       <Trash2 className="mr-2 h-4 w-4" /> Hapus

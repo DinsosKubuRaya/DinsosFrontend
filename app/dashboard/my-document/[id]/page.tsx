@@ -29,15 +29,19 @@ import {
   Calendar,
   User,
   ExternalLink,
+  ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
+import { getUserId } from "@/lib/userHelpers";
 
 export default function DocumentStaffDetailPage() {
   const router = useRouter();
   const params = useParams();
   const id = params?.id as string;
+  const { user, isAdmin } = useAuth();
 
   const [documentData, setDocumentData] = useState<DocumentStaff | null>(null);
   const [loading, setLoading] = useState(true);
@@ -65,7 +69,6 @@ export default function DocumentStaffDetailPage() {
     return filename.split(".").pop()?.toLowerCase() || "";
   };
 
-  // SMART PREVIEW
   const handlePreview = () => {
     if (!documentData?.file_name) {
       toast.error("Link file tidak ditemukan");
@@ -99,7 +102,6 @@ export default function DocumentStaffDetailPage() {
     }
   };
 
-  // Fungsi Delete
   const executeDelete = async () => {
     setLoading(true);
     try {
@@ -146,6 +148,14 @@ export default function DocumentStaffDetailPage() {
     );
   }
 
+  // --- LOGIKA IZIN AKSES  ---
+  const currentUserId = user ? getUserId(user) : null;
+  const docUserId = documentData.user_id ? String(documentData.user_id) : "";
+  const isOwner = currentUserId && docUserId === String(currentUserId);
+  const isAdminDoc = documentData.source === "document";
+  const canEdit = isAdmin || (isOwner && !isAdminDoc);
+  const canDelete = isAdmin || (isOwner && !isAdminDoc);
+
   return (
     <div className="space-y-6 max-w-4xl p-4 md:p-6 mx-auto">
       {/* HEADER */}
@@ -164,20 +174,22 @@ export default function DocumentStaffDetailPage() {
               Detail Dokumen
             </h1>
             <p className="text-muted-foreground text-sm mt-1">
-              Detail informasi dokumen surat (Staff)
+              Detail informasi dokumen surat
             </p>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => router.push(`/dashboard/my-document/${id}/edit`)}
-            disabled={loading}
-          >
-            <Edit className="mr-2 h-4 w-4" />
-            Edit
-          </Button>
+          {canEdit && (
+            <Button
+              variant="outline"
+              onClick={() => router.push(`/dashboard/my-document/${id}/edit`)}
+              disabled={loading}
+            >
+              <Edit className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
+          )}
 
           <Button
             variant="default"
@@ -198,36 +210,38 @@ export default function DocumentStaffDetailPage() {
             Download
           </Button>
 
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" disabled={loading}>
-                {loading ? (
-                  <Spinner className="mr-2 h-4 w-4" />
-                ) : (
-                  <Trash2 className="mr-2 h-4 w-4" />
-                )}
-                Hapus
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Tindakan ini tidak dapat dibatalkan. Dokumen ini akan dihapus
-                  secara permanen dari sistem.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Batal</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={executeDelete}
-                  className="bg-red-600 hover:bg-red-700 text-white focus:ring-red-600"
-                >
-                  Ya, Hapus
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          {canDelete && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" disabled={loading}>
+                  {loading ? (
+                    <Spinner className="mr-2 h-4 w-4" />
+                  ) : (
+                    <Trash2 className="mr-2 h-4 w-4" />
+                  )}
+                  Hapus
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Tindakan ini tidak dapat dibatalkan. Dokumen ini akan
+                    dihapus secara permanen dari sistem.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Batal</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={executeDelete}
+                    className="bg-red-600 hover:bg-red-700 text-white focus:ring-red-600"
+                  >
+                    Ya, Hapus
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
       </div>
 
@@ -236,6 +250,23 @@ export default function DocumentStaffDetailPage() {
         <CardHeader>
           <div className="flex items-start justify-between">
             <div className="flex-1 pr-4">
+              <div className="flex items-center gap-2 mb-2">
+                {isAdminDoc && (
+                  <Badge className="bg-blue-600 hover:bg-blue-700 flex items-center gap-1">
+                    <ShieldCheck className="h-3 w-3" /> Dari Admin
+                  </Badge>
+                )}
+                <Badge
+                  variant={
+                    documentData.letter_type === "masuk"
+                      ? "default"
+                      : "secondary"
+                  }
+                  className="capitalize"
+                >
+                  Surat {documentData.letter_type}
+                </Badge>
+              </div>
               <CardTitle className="text-xl md:text-2xl leading-tight">
                 {documentData.subject || "Tanpa Subjek"}
               </CardTitle>
@@ -243,14 +274,6 @@ export default function DocumentStaffDetailPage() {
                 ID: {documentData.id}
               </p>
             </div>
-            <Badge
-              variant={
-                documentData.letter_type === "masuk" ? "default" : "secondary"
-              }
-              className="shrink-0 capitalize"
-            >
-              Surat {documentData.letter_type}
-            </Badge>
           </div>
         </CardHeader>
         <CardContent>
@@ -313,7 +336,9 @@ export default function DocumentStaffDetailPage() {
                       Diupload Oleh
                     </p>
                     <p className="text-base">
-                      {documentData.user?.name || "Saya Sendiri"}
+                      {isAdminDoc
+                        ? "Admin"
+                        : documentData.user?.name || "Saya Sendiri"}
                     </p>
                   </div>
                 </div>

@@ -21,12 +21,14 @@ interface DocumentUploadFormProps {
   onSubmit: (formData: FormData) => Promise<void>;
   loading: boolean;
   cancelHref: string;
+  isStaff?: boolean;
 }
 
 export function DocumentUploadForm({
   onSubmit,
   loading,
   cancelHref,
+  isStaff = false,
 }: DocumentUploadFormProps) {
   const [sender, setSender] = useState("");
   const [subject, setSubject] = useState("");
@@ -49,34 +51,45 @@ export function DocumentUploadForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!sender || !subject || !letterType || !file) {
+
+    if (!subject || !file) {
+      toast.error("Subjek dan File wajib diisi!");
+      return;
+    }
+
+    if (!isStaff && (!sender || !letterType)) {
       toast.error("Semua field wajib diisi!");
       return;
     }
 
     const formData = new FormData();
-    formData.append("sender", sender);
     formData.append("subject", subject);
-    formData.append("letter_type", letterType);
     formData.append("file", file);
+
+    if (!isStaff) {
+      formData.append("sender", sender);
+      formData.append("letter_type", letterType);
+    }
 
     await onSubmit(formData);
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <div className="space-y-2">
-        <Label htmlFor="sender">Pengirim</Label>
-        <Input
-          id="sender"
-          placeholder="Nama pengirim dokumen"
-          value={sender}
-          onChange={(e) => setSender(e.target.value)}
-          required
-          className="border-secondary/40"
-          disabled={loading}
-        />
-      </div>
+      {!isStaff && (
+        <div className="space-y-2">
+          <Label htmlFor="sender">Pengirim</Label>
+          <Input
+            id="sender"
+            placeholder="Nama pengirim dokumen"
+            value={sender}
+            onChange={(e) => setSender(e.target.value)}
+            required={!isStaff}
+            className="border-secondary/40"
+            disabled={loading}
+          />
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label htmlFor="subject">Subjek / Perihal</Label>
@@ -92,23 +105,25 @@ export function DocumentUploadForm({
         />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="letter_type">Tipe Surat</Label>
-        <Select
-          value={letterType}
-          onValueChange={setLetterType}
-          required
-          disabled={loading}
-        >
-          <SelectTrigger id="letter_type">
-            <SelectValue placeholder="Pilih tipe surat..." />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="masuk">Surat Masuk</SelectItem>
-            <SelectItem value="keluar">Surat Keluar</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      {!isStaff && (
+        <div className="space-y-2">
+          <Label htmlFor="letter_type">Tipe Surat</Label>
+          <Select
+            value={letterType}
+            onValueChange={setLetterType}
+            required={!isStaff}
+            disabled={loading}
+          >
+            <SelectTrigger id="letter_type">
+              <SelectValue placeholder="Pilih tipe surat..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="masuk">Surat Masuk</SelectItem>
+              <SelectItem value="keluar">Surat Keluar</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label htmlFor="file">File Dokumen</Label>
