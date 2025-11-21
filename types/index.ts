@@ -23,7 +23,6 @@ export function getUserId(user: User): string | undefined {
   return user.ID ?? user.id;
 }
 
-
 export type Document = {
   id: string;   
   sender: string;
@@ -59,6 +58,26 @@ export interface DocumentStaff {
 }
 
 
+export interface SuperiorOrder {
+  id: string;
+  document_id: string;
+  document?: Document;
+  user_id: string;
+  user?: User;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateSuperiorOrderRequest {
+  document_id: string;
+  user_ids: string[]; 
+}
+
+export interface UpdateSuperiorOrderRequest {
+  user_ids: string[]; 
+}
+
+
 export type SharedDocument = Document | DocumentStaff;
 
 export interface Notification {
@@ -75,16 +94,16 @@ export interface NotificationsApiResponse {
   unread_count: number;
 }
 
-export interface Category {
-  id: number;
-  name: string;
-  slug: string;
-  description?: string;
-  parent_id?: number;
-  parent?: Category;
-  children?: Category[];
-  created_at: string;
-  updated_at: string;
+
+export interface ApiResponse<T> {
+    status?: 'success' | 'error';
+    message?: string;
+    data?: T; 
+    users?: T; 
+    user?: T;
+    document?: T;
+    error?: string; 
+    errors?: Record<string, string[]>;
 }
 
 export interface PaginatedResponse<T> {
@@ -108,32 +127,6 @@ export interface DocumentsResponse {
 }
 
 export interface DocumentResponse {
-  document: Document;
-}
-
-export interface MessageResponse {
-  message: string;
-}
-
-export interface CreateDocumentResponse {
-  message: string;
-  file_id: string;
-  file_name: string;
-  document: Document;
-}
-
-export interface ApiDocumentsResponse {
-  documents: Document[];
-  total: number;
-  current_page: number;
-  last_page: number;
-  per_page: number;
-}
-
-export interface ApiCreateDocumentResponse {
-  message: string;
-  file_id: string;
-  file_name: string;
   document: Document;
 }
 

@@ -1,5 +1,15 @@
 import axios, { AxiosError, AxiosResponse } from 'axios';
-import { Document, User, NotificationsApiResponse , ActivityLog, DocumentStaff, DocumentStaffApiResponse} from '@/types'; 
+import { 
+    Document, 
+    User, 
+    NotificationsApiResponse, 
+    ActivityLog, 
+    DocumentStaff, 
+    DocumentStaffApiResponse,
+    SuperiorOrder,
+    CreateSuperiorOrderRequest,
+    UpdateSuperiorOrderRequest
+} from '@/types'; 
 import Cookies from 'js-cookie'; 
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
@@ -127,6 +137,38 @@ export const activityLogAPI = {
     );
     return response.data.data; 
   },
+};
+
+// ==== Superior Order API (BARU: Ditambahkan) ====
+export const superiorOrderAPI = {
+    create: async (data: CreateSuperiorOrderRequest) => {
+        // Menggunakan ApiResponse agar konsisten dengan library lama
+        const response = await api.post<ApiResponse<null>>('/superior_orders', data);
+        return response.data;
+    },
+
+    getAll: async () => {
+        const response = await api.get<ApiResponse<SuperiorOrder[]>>('/superior_orders');
+        // Handle jika data dibungkus 'data' atau langsung array
+        const data = response.data.data || response.data;
+        return Array.isArray(data) ? data : ([] as SuperiorOrder[]);
+    },
+
+    getByDocumentId: async (documentId: string) => {
+        const response = await api.get<ApiResponse<SuperiorOrder[]>>(`/superior_orders/${documentId}`);
+        const data = response.data.data || response.data;
+        return Array.isArray(data) ? data : ([] as SuperiorOrder[]);
+    },
+
+    update: async (documentId: string, data: UpdateSuperiorOrderRequest) => {
+        const response = await api.put<ApiResponse<null>>(`/superior_orders/${documentId}`, data);
+        return response.data;
+    },
+
+    delete: async (documentId: string) => {
+        const response = await api.delete<ApiResponse<null>>(`/superior_orders/${documentId}`);
+        return response.data;
+    }
 };
 
 // ==== Document API (ADMIN) ====

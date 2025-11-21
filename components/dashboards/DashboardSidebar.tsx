@@ -52,6 +52,11 @@ export function DashboardSidebar({
   const adminPanelNavigation = [
     { name: "Kelola User", href: "/dashboard/admin/users", icon: Users },
     { name: "Activity Log", href: "/dashboard/activity-log", icon: Activity },
+    {
+      name: "Perintah Atasan",
+      href: "/dashboard/superior-orders",
+      icon: ShieldCheck,
+    },
   ];
 
   const isActive = (href: string) => {
