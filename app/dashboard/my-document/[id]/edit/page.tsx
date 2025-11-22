@@ -5,16 +5,8 @@ import { useRouter, useParams } from "next/navigation";
 import { documentStaffAPI, getErrorMessage } from "@/lib/api";
 import { DocumentStaff } from "@/types";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Save, Loader2, Download } from "lucide-react";
 import { toast } from "sonner";
@@ -62,17 +54,18 @@ export default function EditDocumentStaffPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.subject.trim() || !formData.sender.trim()) {
-      toast.error("Sender dan Subjek wajib diisi");
+    // [MODIFIED] Validasi Sender dihapus karena inputnya dihilangkan
+    if (!formData.subject.trim()) {
+      toast.error("Subjek wajib diisi");
       return;
     }
 
     try {
       setSaving(true);
       await documentStaffAPI.update(id, {
-        sender: formData.sender.trim(),
+        sender: formData.sender.trim(), // Tetap dikirim nilai existing/default
         subject: formData.subject.trim(),
-        letter_type: formData.letter_type,
+        letter_type: formData.letter_type, // Tetap dikirim nilai existing/default
       });
       toast.success("Dokumen berhasil diperbarui");
       router.push(`/dashboard/my-document/${id}`);
@@ -89,10 +82,6 @@ export default function EditDocumentStaffPage() {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSelectChange = (value: "masuk" | "keluar") => {
-    setFormData((prev) => ({ ...prev, letter_type: value }));
   };
 
   if (loading) {
@@ -166,43 +155,7 @@ export default function EditDocumentStaffPage() {
               </p>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2">
-              {/* SENDER */}
-              <div className="space-y-2">
-                <Label htmlFor="sender">
-                  Pengirim <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="sender"
-                  name="sender"
-                  value={formData.sender}
-                  onChange={handleFormChange}
-                  disabled={saving}
-                  className="border-black/40"
-                  required
-                />
-              </div>
-
-              {/* LETTER TYPE */}
-              <div className="space-y-2">
-                <Label htmlFor="letter_type">
-                  Jenis Surat <span className="text-destructive">*</span>
-                </Label>
-                <Select
-                  value={formData.letter_type}
-                  onValueChange={handleSelectChange}
-                  disabled={saving}
-                >
-                  <SelectTrigger className="border-2 border-black/40 ">
-                    <SelectValue placeholder="Pilih jenis surat" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="masuk">Surat Masuk</SelectItem>
-                    <SelectItem value="keluar">Surat Keluar</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            {/* [MODIFIED] INPUT SENDER DAN LETTER TYPE DIHAPUS DARI UI */}
 
             {/* SUBJECT */}
             <div className="space-y-2">

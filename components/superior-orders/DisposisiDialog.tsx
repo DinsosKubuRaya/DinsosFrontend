@@ -11,8 +11,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area"; // Pastikan punya ini atau ganti div biasa
 import { userAPI, superiorOrderAPI } from "@/lib/api";
 import { User } from "@/types";
 import { toast } from "sonner";
@@ -55,11 +53,10 @@ export function DisposisiDialog({
 
   // Handle Checkbox
   const toggleUser = (userId: string) => {
-    setSelectedUserIds(
-      (prev) =>
-        prev.includes(userId)
-          ? prev.filter((id) => id !== userId) // Hapus jika sudah ada
-          : [...prev, userId] // Tambah jika belum ada
+    setSelectedUserIds((prev) =>
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
+        : [...prev, userId]
     );
   };
 

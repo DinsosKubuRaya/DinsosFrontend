@@ -174,7 +174,7 @@ export default function DocumentStaffDetailPage() {
               Detail Dokumen
             </h1>
             <p className="text-muted-foreground text-sm mt-1">
-              Detail informasi dokumen surat
+              Detail informasi dokumen saya
             </p>
           </div>
         </div>
@@ -256,16 +256,7 @@ export default function DocumentStaffDetailPage() {
                     <ShieldCheck className="h-3 w-3" /> Dari Admin
                   </Badge>
                 )}
-                <Badge
-                  variant={
-                    documentData.letter_type === "masuk"
-                      ? "default"
-                      : "secondary"
-                  }
-                  className="capitalize"
-                >
-                  Surat {documentData.letter_type}
-                </Badge>
+                {/* [MODIFIED] Bagian Badge Tipe Surat dihapus agar tidak tampil */}
               </div>
               <CardTitle className="text-xl md:text-2xl leading-tight">
                 {documentData.subject || "Tanpa Subjek"}
@@ -281,17 +272,7 @@ export default function DocumentStaffDetailPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Kiri */}
               <div className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <User className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Pengirim
-                    </p>
-                    <p className="text-base font-medium">
-                      {documentData.sender || "-"}
-                    </p>
-                  </div>
-                </div>
+                {/* [MODIFIED] Bagian Info Pengirim dihapus */}
 
                 <div className="flex items-start gap-3">
                   <FileText className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />

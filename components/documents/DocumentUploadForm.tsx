@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,11 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { Upload as UploadIcon } from "lucide-react";
 import { toast } from "sonner";
+
+// Import komponen untuk Disposisi
+import { UserMultiSelect } from "@/components/superior-orders/UserMultiSelect";
+import { userAPI } from "@/lib/api";
+import { User } from "@/types";
 
 interface DocumentUploadFormProps {
   onSubmit: (formData: FormData) => Promise<void>;
@@ -34,6 +39,29 @@ export function DocumentUploadForm({
   const [subject, setSubject] = useState("");
   const [letterType, setLetterType] = useState("");
   const [file, setFile] = useState<File | null>(null);
+
+  // State untuk Disposisi (Hanya dipakai Admin)
+  const [users, setUsers] = useState<User[]>([]);
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+
+  // Fetch users hanya jika user BUKAN staff (alias Admin)
+  useEffect(() => {
+    if (!isStaff) {
+      const fetchUsers = async () => {
+        try {
+          const data = await userAPI.getAll();
+          // Filter hanya staff agar admin tidak mendisposisi ke sesama admin
+          const staffOnly = Array.isArray(data)
+            ? data.filter((u) => u.role === "staff")
+            : [];
+          setUsers(staffOnly);
+        } catch (error) {
+          console.error("Gagal memuat daftar user:", error);
+        }
+      };
+      fetchUsers();
+    }
+  }, [isStaff]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -57,6 +85,7 @@ export function DocumentUploadForm({
       return;
     }
 
+    // Validasi khusus Admin
     if (!isStaff && (!sender || !letterType)) {
       toast.error("Semua field wajib diisi!");
       return;
@@ -66,9 +95,15 @@ export function DocumentUploadForm({
     formData.append("subject", subject);
     formData.append("file", file);
 
+    // Data tambahan khusus Admin
     if (!isStaff) {
       formData.append("sender", sender);
       formData.append("letter_type", letterType);
+
+      // Masukkan data disposisi ke FormData jika ada staff yang dipilih
+      if (selectedUserIds.length > 0) {
+        formData.append("target_user_ids", selectedUserIds.join(","));
+      }
     }
 
     await onSubmit(formData);
@@ -76,6 +111,7 @@ export function DocumentUploadForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      {/* FIELD KHUSUS ADMIN: PENGIRIM */}
       {!isStaff && (
         <div className="space-y-2">
           <Label htmlFor="sender">Pengirim</Label>
@@ -91,6 +127,7 @@ export function DocumentUploadForm({
         </div>
       )}
 
+      {/* FIELD UMUM: SUBJEK */}
       <div className="space-y-2">
         <Label htmlFor="subject">Subjek / Perihal</Label>
         <Textarea
@@ -105,26 +142,48 @@ export function DocumentUploadForm({
         />
       </div>
 
+      {/* FIELD KHUSUS ADMIN: TIPE SURAT & DISPOSISI */}
       {!isStaff && (
-        <div className="space-y-2">
-          <Label htmlFor="letter_type">Tipe Surat</Label>
-          <Select
-            value={letterType}
-            onValueChange={setLetterType}
-            required={!isStaff}
-            disabled={loading}
-          >
-            <SelectTrigger id="letter_type">
-              <SelectValue placeholder="Pilih tipe surat..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="masuk">Surat Masuk</SelectItem>
-              <SelectItem value="keluar">Surat Keluar</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="letter_type">Tipe Surat</Label>
+            <Select
+              value={letterType}
+              onValueChange={setLetterType}
+              required={!isStaff}
+              disabled={loading}
+            >
+              <SelectTrigger id="letter_type">
+                <SelectValue placeholder="Pilih tipe surat..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="masuk">Surat Masuk</SelectItem>
+                <SelectItem value="keluar">Surat Keluar</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Bagian Disposisi - Hanya Muncul untuk Admin */}
+          <div className="p-4 border rounded-lg bg-slate-50 space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-base font-semibold text-slate-700">
+                Disposisi / Perintah ke Staff
+              </Label>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Pilih staff di bawah ini untuk menjadikan dokumen ini sebagai
+              Perintah Atasan.
+            </p>
+            <UserMultiSelect
+              users={users}
+              selectedUserIds={selectedUserIds}
+              onChange={setSelectedUserIds}
+            />
+          </div>
+        </>
       )}
 
+      {/* FIELD UMUM: FILE UPLOAD */}
       <div className="space-y-2">
         <Label htmlFor="file">File Dokumen</Label>
         <Input
@@ -146,6 +205,7 @@ export function DocumentUploadForm({
         </p>
       </div>
 
+      {/* TOMBOL ACTION */}
       <div className="flex gap-3 pt-4">
         <Button type="submit" disabled={loading} className="flex-1">
           {loading ? (
@@ -156,7 +216,10 @@ export function DocumentUploadForm({
           ) : (
             <>
               <UploadIcon className="mr-2 h-4 w-4" />
-              Upload Dokumen
+              {/* Ubah teks tombol jika ada disposisi yang dipilih */}
+              {!isStaff && selectedUserIds.length > 0
+                ? "Upload & Kirim Perintah"
+                : "Upload Dokumen"}
             </>
           )}
         </Button>

@@ -6,7 +6,6 @@ import { documentAPI, getErrorMessage } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DisposisiDialog } from "@/components/superior-orders/DisposisiDialog";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -18,7 +17,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Save, Loader2, Download, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
-import { CreateOrderDialog } from "@/components/superior-orders/CreateOrderDialog";
 import { useAuth } from "@/context/AuthContext";
 
 interface DocumentData {
@@ -226,7 +224,6 @@ export default function AdminDocumentDetail() {
                 disabled={saving}
                 accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp,.xls,.xlsx,.ppt,.pptx"
               />
-              <CreateOrderDialog documentId={params.id as string} />
               <p className="text-xs text-muted-foreground">
                 Biarkan kosong jika tidak ingin mengganti file.
               </p>
