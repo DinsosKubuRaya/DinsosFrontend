@@ -21,11 +21,12 @@ export default function UploadDocumentStaffPage() {
     if (!user) return;
     setLoading(true);
     try {
-      // Logika upload tetap di sini, Form memanggil ini via onSubmit
       const response = await documentStaffAPI.create(formData);
+
       toast.success("Dokumen berhasil diupload!", {
         description: response.message || "File telah tersimpan di arsip anda",
       });
+
       setTimeout(() => router.push("/dashboard/my-document"), 1500);
     } catch (error: unknown) {
       console.error("Upload Error:", error);
@@ -72,10 +73,10 @@ export default function UploadDocumentStaffPage() {
         </CardHeader>
         <CardContent>
           <DocumentUploadForm
-            onSubmit={handleUpload} // Menggunakan onSubmit, cocok dengan Form baru
+            onSubmit={handleUpload}
             loading={loading}
             cancelHref="/dashboard/my-document"
-            isStaff={true} // Mode Staff
+            isStaff={true}
           />
         </CardContent>
       </Card>

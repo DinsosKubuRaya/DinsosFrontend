@@ -17,7 +17,8 @@ type RegisterData = {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  isAdmin: boolean;
+  isAdmin: boolean; // True jika admin ATAU superadmin (untuk akses halaman admin)
+  isSuperAdmin: boolean; // True HANYA jika superadmin (untuk akses hapus user)
   login: (username: string, password: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
@@ -32,6 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   const isAdmin = user?.role === "admin" || user?.role === "superadmin";
+  const isSuperAdmin = user?.role === "superadmin";
 
   useEffect(() => {
     const token = Cookies.get("access_token");
@@ -100,6 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         loading,
         isAdmin,
+        isSuperAdmin,
         login,
         register,
         logout,

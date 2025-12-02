@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Save, Loader2, Download } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Eye } from "lucide-react";
 import { toast } from "sonner";
 
 export default function EditDocumentStaffPage() {
@@ -19,10 +19,9 @@ export default function EditDocumentStaffPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [document, setDocument] = useState<DocumentStaff | null>(null);
+
   const [formData, setFormData] = useState({
-    sender: "",
     subject: "",
-    letter_type: "masuk" as "masuk" | "keluar",
   });
 
   useEffect(() => {
@@ -38,9 +37,7 @@ export default function EditDocumentStaffPage() {
       const doc = await documentStaffAPI.getById(id);
       setDocument(doc);
       setFormData({
-        sender: doc.sender || "",
         subject: doc.subject || "",
-        letter_type: (doc.letter_type as "masuk" | "keluar") || "masuk",
       });
     } catch (error) {
       console.error("Error fetching document:", error);
@@ -54,7 +51,6 @@ export default function EditDocumentStaffPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // [MODIFIED] Validasi Sender dihapus karena inputnya dihilangkan
     if (!formData.subject.trim()) {
       toast.error("Subjek wajib diisi");
       return;
@@ -63,9 +59,10 @@ export default function EditDocumentStaffPage() {
     try {
       setSaving(true);
       await documentStaffAPI.update(id, {
-        sender: formData.sender.trim(), // Tetap dikirim nilai existing/default
         subject: formData.subject.trim(),
-        letter_type: formData.letter_type, // Tetap dikirim nilai existing/default
+        sender: "",
+        letter_type: "masuk",
+        file: null,
       });
       toast.success("Dokumen berhasil diperbarui");
       router.push(`/dashboard/my-document/${id}`);
@@ -82,6 +79,33 @@ export default function EditDocumentStaffPage() {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // --- LOGIKA PREVIEW YANG LEBIH STABIL ---
+  const handlePreview = () => {
+    // 1. Cek URL yang valid.
+    // - Prioritas 1: file_url (Format baru, URL Cloudinary ada di sini)
+    // - Prioritas 2: file_name (Format lama, dulu URL disimpan di sini)
+    const fileUrl = document?.file_url || document?.file_name;
+
+    if (!fileUrl) {
+      toast.error("URL file tidak ditemukan");
+      return;
+    }
+
+    // 2. Buka langsung di tab baru
+    // Browser modern sudah pintar menangani PDF/Gambar/Video
+    window.open(fileUrl, "_blank");
+  };
+
+  // Helper untuk menampilkan nama file yang bersih di UI
+  const getDisplayFileName = () => {
+    if (!document?.file_name) return "File Terlampir";
+    // Jika file_name berisi URL panjang (data lama), ambil bagian akhirnya saja
+    if (document.file_name.startsWith("http")) {
+      return document.file_name.split("/").pop() || "File Lama";
+    }
+    return document.file_name;
   };
 
   if (loading) {
@@ -104,7 +128,7 @@ export default function EditDocumentStaffPage() {
   }
 
   return (
-    <div className="container max-w-3xl py-8 px-4 md:px-6">
+    <div className="container max-w-3xl py-8 px-4 md:px-6 mx-auto">
       <div className="mb-6 flex items-center gap-4">
         <Button
           variant="ghost"
@@ -128,36 +152,36 @@ export default function EditDocumentStaffPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* FILE INFO (READ ONLY) */}
+            {/* FILE INFO */}
             <div className="p-4 bg-muted/50 rounded-lg border space-y-3">
               <Label className="text-muted-foreground">File Terlampir</Label>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 overflow-hidden">
-                  <span className="font-medium truncate max-w-[200px] md:max-w-md">
-                    {document.file_name?.split("/").pop() || "File"}
+                  <span
+                    className="font-medium truncate max-w-[200px] md:max-w-md"
+                    title={document.file_name}
+                  >
+                    {getDisplayFileName()}
                   </span>
                 </div>
-                {document.file_name && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.open(document.file_name, "_blank")}
-                  >
-                    <Download className="mr-2 h-3 w-3" />
-                    Cek File
-                  </Button>
-                )}
+
+                {/* Tombol Preview */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePreview}
+                >
+                  <Eye className="mr-2 h-3 w-3" />
+                  Cek File
+                </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                *File tidak dapat diganti di menu edit. Hapus dan upload ulang
-                jika file salah.
+                *File tidak dapat diganti di menu edit.
               </p>
             </div>
 
-            {/* [MODIFIED] INPUT SENDER DAN LETTER TYPE DIHAPUS DARI UI */}
-
-            {/* SUBJECT */}
+            {/* FIELD SUBJECT */}
             <div className="space-y-2">
               <Label htmlFor="subject">
                 Subjek / Perihal <span className="text-destructive">*</span>
@@ -169,7 +193,7 @@ export default function EditDocumentStaffPage() {
                 value={formData.subject}
                 onChange={handleFormChange}
                 disabled={saving}
-                className="border-black/40"
+                className="border-secondary/40"
                 required
               />
             </div>

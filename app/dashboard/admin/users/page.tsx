@@ -1,32 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useAuth } from "@/context/AuthContext";
-import { userAPI } from "@/lib/api";
+import { useState, useEffect } from "react";
+import { AdminGuard } from "@/components/ui/admin/admin-guard";
+import { userAPI, getErrorMessage } from "@/lib/api";
 import { User } from "@/types";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
+import { UserPlus } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
+import { getUserId } from "@/lib/userHelpers";
+import { useAuth } from "@/context/AuthContext";
+
 import { UserTable } from "@/components/users/TableUser";
+import { UserMobileCard } from "@/components/users/UserMobileCard";
 import { UserFormDialog } from "@/components/users/UserFormDialog";
 import { DeleteUserDialog } from "@/components/users/DeleteUserDialog";
-import { Button } from "@/components/ui/button";
-import { Plus, Users, ShieldAlert } from "lucide-react";
-import { toast } from "sonner";
-import { Spinner } from "@/components/ui/spinner";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AdminGuard } from "@/components/ui/admin/admin-guard";
 
 export default function AdminUsersPage() {
-  const { user: currentUser } = useAuth();
+  const { isSuperAdmin } = useAuth();
+
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Dialog States
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
-  const [formLoading, setFormLoading] = useState(false);
 
-  // Form Data State
   const [formData, setFormData] = useState({
     name: "",
     username: "",
@@ -34,174 +34,188 @@ export default function AdminUsersPage() {
     role: "staff" as "admin" | "staff" | "superadmin",
   });
 
-  const isSuperAdmin = currentUser?.role === "superadmin";
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
   const fetchUsers = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const data = await userAPI.getAll();
-      setUsers(data);
+      setUsers(Array.isArray(data) ? data : []);
     } catch (error) {
-      toast.error("Gagal memuat data user");
+      console.error(error);
+      setUsers([]);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
 
-  const handleCreate = () => {
-    setEditingUser(null);
-    setFormData({ name: "", username: "", password: "", role: "staff" });
-    setIsFormOpen(true);
+    try {
+      if (editingUser) {
+        const userId = getUserId(editingUser);
+        if (!userId) throw new Error("ID Invalid");
+
+        await userAPI.update(userId, {
+          name: formData.name,
+          username: formData.username,
+          password: formData.password || undefined,
+          role: formData.role,
+        });
+        toast.success("User berhasil diupdate");
+      } else {
+        await userAPI.create(formData);
+        toast.success("User berhasil ditambahkan");
+      }
+
+      setDialogOpen(false);
+      resetForm();
+      fetchUsers();
+    } catch (error) {
+      toast.error(editingUser ? "Gagal update" : "Gagal tambah", {
+        description: getErrorMessage(error),
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEdit = (user: User) => {
-    if (!isSuperAdmin && user.id !== currentUser?.id) {
-      toast.error("Hanya Superadmin yang dapat mengubah data user lain.");
+    if (!isSuperAdmin) {
+      toast.error("Akses Ditolak", {
+        description: "Hanya Superadmin yang dapat mengedit user lain.",
+      });
       return;
     }
+
     setEditingUser(user);
     setFormData({
-      name: user.name,
-      username: user.username,
+      name: user.name || "",
+      username: user.username || "",
       password: "",
-      role: user.role as "admin" | "staff" | "superadmin",
+      role: (user.role as "admin" | "staff" | "superadmin") || "staff",
     });
-    setIsFormOpen(true);
+    setDialogOpen(true);
   };
 
   const handleDeleteClick = (user: User) => {
     if (!isSuperAdmin) {
-      toast.error("Akses Ditolak: Hanya Superadmin yang dapat menghapus user.");
+      toast.error("Akses Ditolak", {
+        description: "Hanya Superadmin yang dapat menghapus user.",
+      });
       return;
     }
     setUserToDelete(user);
-    setIsDeleteDialogOpen(true);
+    setDeleteDialogOpen(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormLoading(true);
-    try {
-      // Validasi dasar
-      if (!formData.name || !formData.username) {
-        throw new Error("Nama dan Username wajib diisi");
-      }
-      if (!editingUser && !formData.password) {
-        throw new Error("Password wajib diisi untuk user baru");
-      }
+  const handleDeleteConfirm = async () => {
+    if (!userToDelete) return;
+    const userId = getUserId(userToDelete);
+    if (!userId) return;
 
-      if (editingUser && editingUser.id) {
-        // Mode Edit
-        await userAPI.update(editingUser.id, formData);
-        toast.success("User berhasil diperbarui");
-      } else {
-        // Mode Create
-        await userAPI.create({
-          name: formData.name,
-          username: formData.username,
-          password: formData.password,
-          role: formData.role,
-        });
-        toast.success("User berhasil dibuat");
-      }
-      setIsFormOpen(false);
-      fetchUsers();
-    } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : "Terjadi kesalahan";
-      toast.error(msg);
-    } finally {
-      setFormLoading(false);
-    }
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!userToDelete || !userToDelete.id) return;
-    setFormLoading(true);
+    setLoading(true);
     try {
-      await userAPI.delete(userToDelete.id);
+      await userAPI.delete(userId);
       toast.success("User berhasil dihapus");
-      setIsDeleteDialogOpen(false);
       fetchUsers();
-    } catch (error: unknown) {
-      toast.error("Gagal menghapus user");
+      setDeleteDialogOpen(false);
+      setUserToDelete(null);
+    } catch (error) {
+      toast.error("Gagal hapus user", { description: getErrorMessage(error) });
     } finally {
-      setFormLoading(false);
+      setLoading(false);
     }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      username: "",
+      password: "",
+      role: "staff",
+    });
+    setEditingUser(null);
   };
 
   return (
     <AdminGuard>
-      <div className="space-y-6 p-6">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="space-y-6 p-4 md:p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              Kelola Pengguna
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+              User Management
             </h1>
-            <p className="text-muted-foreground">
-              Daftar semua pengguna yang memiliki akses ke sistem.
+            <p className="text-muted-foreground mt-2 text-sm md:text-base">
+              Kelola user dan hak akses sistem
             </p>
           </div>
 
+          {/* Tombol Tambah User Hanya Untuk Superadmin */}
           {isSuperAdmin && (
-            <Button onClick={handleCreate} className="gap-2 w-full md:w-auto">
-              <Plus className="h-4 w-4" />
+            <Button
+              onClick={() => {
+                setEditingUser(null);
+                resetForm();
+                setDialogOpen(true);
+              }}
+              className="w-full md:w-auto"
+            >
+              <UserPlus className="mr-2 h-4 w-4" />
               Tambah User
             </Button>
           )}
         </div>
 
-        {!isSuperAdmin && (
-          <Alert className="bg-yellow-50 border-yellow-200">
-            <ShieldAlert className="h-4 w-4 text-yellow-600" />
-            <AlertTitle className="text-yellow-800 font-semibold">
-              Akses Terbatas
-            </AlertTitle>
-            <AlertDescription className="text-yellow-700 text-sm">
-              Anda login sebagai <b>Admin</b>. Anda dapat melihat daftar user,
-              namun hanya <b>Superadmin</b> yang dapat menambah atau menghapus
-              user.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <div className="bg-card rounded-lg border shadow-sm">
-          {loading ? (
-            <div className="flex h-64 items-center justify-center">
-              <Spinner className="h-8 w-8 text-primary" />
-            </div>
-          ) : (
-            <UserTable
-              users={users}
-              onEdit={handleEdit}
-              onDelete={handleDeleteClick}
-              // Prop ini opsional di UserTable, tapi jika ada logic readOnly bisa dipakai
-              // readOnly={!isSuperAdmin}
-            />
-          )}
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg md:text-xl">Daftar User</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0 md:p-6">
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <Spinner className="h-8 w-8" />
+              </div>
+            ) : (
+              <>
+                <UserTable
+                  users={users}
+                  onEdit={handleEdit}
+                  onDelete={handleDeleteClick}
+                  loading={loading}
+                />
+                <UserMobileCard
+                  users={users}
+                  onEdit={handleEdit}
+                  onDelete={handleDeleteClick}
+                  loading={loading}
+                />
+              </>
+            )}
+          </CardContent>
+        </Card>
 
         <UserFormDialog
-          open={isFormOpen}
-          onOpenChange={setIsFormOpen}
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
           editingUser={editingUser}
           formData={formData}
           onFormChange={setFormData}
           onSubmit={handleSubmit}
-          loading={formLoading}
+          loading={loading}
           isSuperAdmin={isSuperAdmin}
         />
 
         <DeleteUserDialog
-          open={isDeleteDialogOpen}
-          onOpenChange={setIsDeleteDialogOpen}
-          onConfirm={handleConfirmDelete}
-          loading={formLoading}
-          // PERBAIKAN: Pass object 'user' bukan 'username'
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
           user={userToDelete}
+          onConfirm={handleDeleteConfirm}
+          loading={loading}
         />
       </div>
     </AdminGuard>

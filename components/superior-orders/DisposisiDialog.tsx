@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { userAPI, superiorOrderAPI } from "@/lib/api";
 import { User } from "@/types";
 import { toast } from "sonner";
-import { Users, Send, Search } from "lucide-react";
+import { Send, Search } from "lucide-react";
 
 interface DisposisiDialogProps {
   documentId: string;
@@ -31,7 +31,6 @@ export function DisposisiDialog({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
 
-  // Load data staff saat dialog dibuka
   useEffect(() => {
     if (open) {
       const fetchUsers = async () => {

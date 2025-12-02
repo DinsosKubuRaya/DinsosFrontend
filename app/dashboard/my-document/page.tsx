@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/context/AuthContext";
 import { Badge } from "@/components/ui/badge";
-import { getUserId } from "@/lib/userHelpers"; // Import Helper User ID
+import { getUserId } from "@/lib/userHelpers";
 
 export default function MyDocumentPage() {
   const { user, isAdmin } = useAuth();
@@ -54,17 +54,10 @@ export default function MyDocumentPage() {
     try {
       const params: { search?: string } = {};
       if (search) params.search = search;
-
-      // Ambil ID User yang sedang login
       const currentUserId = user ? getUserId(user) : "";
-
-      // 1. Ambil Dokumen Pribadi (Staff)
       const response = await documentStaffAPI.getAll(params);
-
-      // FILTER KETAT: Hanya dokumen milik user ini
       const myDocs: Document[] = (response.documents || [])
         .filter((doc: DocumentStaff) => {
-          // Pastikan user_id dokumen sama dengan user login
           return String(doc.user_id) === String(currentUserId);
         })
         .map((doc: DocumentStaff) => ({
@@ -72,14 +65,13 @@ export default function MyDocumentPage() {
           source: "document_staff",
         })) as unknown as Document[];
 
-      // 2. Ambil Dokumen Masuk dari Admin (Hanya untuk Staff)
       let adminDocs: Document[] = [];
 
       if (!isAdmin && currentUserId) {
         try {
           const orders = await superiorOrderAPI.getAll();
 
-          // FILTER KETAT: Hanya perintah yang ditujukan ke user ini
+          // Hanya perintah yang ditujukan ke user
           const myOrders = orders.filter(
             (o) => String(o.user_id) === String(currentUserId)
           );
@@ -88,16 +80,15 @@ export default function MyDocumentPage() {
             .map((order): Document | null => {
               if (!order.document) return null;
 
-              // Transformasi ke tipe Document
               return {
                 ...order.document,
-                source: "document", // Tandai sebagai dokumen admin
+                source: "document",
                 user: {
                   name: "Admin / Atasan",
                   username: "admin",
                   role: "admin",
                 },
-                created_at: order.created_at, // Gunakan tanggal disposisi
+                created_at: order.created_at,
               } as Document;
             })
             .filter((doc): doc is Document => doc !== null);
@@ -106,7 +97,6 @@ export default function MyDocumentPage() {
         }
       }
 
-      // Gabungkan data
       setAllDocuments([...myDocs, ...adminDocs]);
     } catch (error) {
       console.error("Error fetching documents:", error);
@@ -117,7 +107,6 @@ export default function MyDocumentPage() {
     }
   };
 
-  // --- LOGIKA FILTER TAB ---
   const personalDocuments = allDocuments.filter(
     (doc) => doc.source === "document_staff"
   );
@@ -146,7 +135,6 @@ export default function MyDocumentPage() {
   const handleDownload = async (doc: Document) => {
     try {
       if (doc.source === "document") {
-        // Dokumen admin dibuka di tab baru (public URL atau endpoint download admin)
         window.open(doc.file_url, "_blank");
       } else {
         // Dokumen staff gunakan endpoint download staff

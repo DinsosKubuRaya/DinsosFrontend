@@ -10,28 +10,29 @@ interface AdminGuardProps {
 }
 
 export function AdminGuard({ children }: AdminGuardProps) {
-  const { user, loading } = useAuth();
+  const { user, loading, isAdmin } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!loading) {
       if (!user) {
         router.push("/login");
-      } else if (user.role !== "admin") {
+      } else if (!isAdmin) {
         router.push("/dashboard");
       }
     }
-  }, [user, loading, router]);
+  }, [user, loading, isAdmin, router]);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Spinner className="h-12 w-12" />
+        <Spinner className="h-12 w-12 text-primary" />
       </div>
     );
   }
 
-  if (!user || user.role !== "admin") {
+  // Jika lolos pengecekan, render halaman
+  if (!isAdmin) {
     return null;
   }
 

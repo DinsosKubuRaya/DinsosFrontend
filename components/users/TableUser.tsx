@@ -38,20 +38,23 @@ export function UserTable({
     switch (role) {
       case "superadmin":
         return (
-          <Badge className="bg-red-600 hover:bg-red-700">
-            <ShieldAlert className="mr-1 h-3 w-3" /> {role}
+          <Badge className="bg-red-600 hover:bg-red-700 border-red-600">
+            <ShieldAlert className="mr-1.5 h-3.5 w-3.5" />
+            SUPER ADMIN
           </Badge>
         );
       case "admin":
         return (
-          <Badge className="bg-blue-600 hover:bg-blue-700">
-            <ShieldCheck className="mr-1 h-3 w-3" /> {role}
+          <Badge className="bg-blue-600 hover:bg-blue-700 border-blue-600">
+            <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
+            Admin
           </Badge>
         );
       default:
         return (
-          <Badge variant="secondary">
-            <UserIcon className="mr-1 h-3 w-3" /> {role}
+          <Badge variant="secondary" className="bg-slate-200 text-slate-700">
+            <UserIcon className="mr-1.5 h-3.5 w-3.5" />
+            Staff
           </Badge>
         );
     }
@@ -67,15 +70,15 @@ export function UserTable({
   };
 
   return (
-    <div className="rounded-md border bg-card">
+    <div className="rounded-md border bg-card shadow-sm">
       <Table>
-        <TableHeader>
+        <TableHeader className="bg-muted/50">
           <TableRow>
-            <TableHead className="w-[50px]">No</TableHead>
+            <TableHead className="w-[50px] text-center">No</TableHead>
             <TableHead className="w-[60px]">Foto</TableHead>
             <TableHead>Nama Lengkap</TableHead>
             <TableHead>Username</TableHead>
-            <TableHead>Role</TableHead>
+            <TableHead>Role / Jabatan</TableHead>
             <TableHead>Tanggal Dibuat</TableHead>
             <TableHead className="text-right">Aksi</TableHead>
           </TableRow>
@@ -83,7 +86,10 @@ export function UserTable({
         <TableBody>
           {users.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7} className="h-24 text-center">
+              <TableCell
+                colSpan={7}
+                className="h-32 text-center text-muted-foreground"
+              >
                 Tidak ada data user.
               </TableCell>
             </TableRow>
@@ -93,22 +99,23 @@ export function UserTable({
               if (!userId) return null;
 
               return (
-                <TableRow key={userId}>
-                  <TableCell className="text-muted-foreground">
+                <TableRow key={userId} className="hover:bg-muted/5">
+                  <TableCell className="text-center text-muted-foreground">
                     {index + 1}
                   </TableCell>
                   <TableCell>
-                    <Avatar className="h-8 w-8">
-                      {/* Tampilkan foto jika ada */}
+                    <Avatar className="h-9 w-9 border">
                       <AvatarImage src={user.photo_url || ""} alt={user.name} />
-                      <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                      <AvatarFallback className="bg-primary/5 text-primary text-xs font-bold">
                         {getInitials(user.name)}
                       </AvatarFallback>
                     </Avatar>
                   </TableCell>
-                  <TableCell className="font-medium">{user.name}</TableCell>
-                  <TableCell className="font-mono text-xs">
-                    {user.username}
+                  <TableCell className="font-medium text-foreground">
+                    {user.name}
+                  </TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground">
+                    @{user.username}
                   </TableCell>
                   <TableCell>{getRoleBadge(user.role)}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">
@@ -122,11 +129,13 @@ export function UserTable({
                         onClick={() => onEdit(user)}
                         disabled={loading || readOnly}
                         className={
-                          readOnly ? "opacity-50 cursor-not-allowed" : ""
+                          readOnly
+                            ? "opacity-30 cursor-not-allowed"
+                            : "hover:bg-blue-50 hover:text-blue-600"
                         }
-                        title={readOnly ? "Hanya Superadmin" : "Edit User"}
+                        title={readOnly ? "Hanya Super Admin" : "Edit User"}
                       >
-                        <Edit className="h-4 w-4 text-blue-600" />
+                        <Edit className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -134,11 +143,13 @@ export function UserTable({
                         onClick={() => onDelete(user)}
                         disabled={loading || readOnly}
                         className={
-                          readOnly ? "opacity-50 cursor-not-allowed" : ""
+                          readOnly
+                            ? "opacity-30 cursor-not-allowed"
+                            : "hover:bg-red-50 hover:text-red-600"
                         }
-                        title={readOnly ? "Hanya Superadmin" : "Hapus User"}
+                        title={readOnly ? "Hanya Super Admin" : "Hapus User"}
                       >
-                        <Trash2 className="h-4 w-4 text-red-600" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>

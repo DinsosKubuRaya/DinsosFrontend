@@ -16,14 +16,12 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { Upload as UploadIcon } from "lucide-react";
 import { toast } from "sonner";
-
-// Import komponen untuk Disposisi
 import { UserMultiSelect } from "@/components/superior-orders/UserMultiSelect";
 import { userAPI } from "@/lib/api";
 import { User } from "@/types";
 
 interface DocumentUploadFormProps {
-  onSubmit: (formData: FormData) => Promise<void>; // Gunakan onSubmit, bukan onSuccess
+  onSubmit: (formData: FormData) => Promise<void>;
   loading: boolean;
   cancelHref: string;
   isStaff?: boolean;
@@ -37,14 +35,12 @@ export function DocumentUploadForm({
 }: DocumentUploadFormProps) {
   const [sender, setSender] = useState("");
   const [subject, setSubject] = useState("");
-  const [letterType, setLetterType] = useState("masuk"); // Default value penting untuk Staff
+  const [letterType, setLetterType] = useState("masuk");
   const [file, setFile] = useState<File | null>(null);
 
-  // State untuk Disposisi (Hanya dipakai Admin)
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
 
-  // Fetch users hanya jika user BUKAN staff (alias Admin)
   useEffect(() => {
     if (!isStaff) {
       const fetchUsers = async () => {
@@ -84,7 +80,7 @@ export function DocumentUploadForm({
       return;
     }
 
-    // Validasi khusus Admin (Sender wajib)
+    // Validasi Sender hanya untuk Admin
     if (!isStaff && !sender) {
       toast.error("Pengirim wajib diisi!");
       return;
@@ -94,17 +90,12 @@ export function DocumentUploadForm({
     formData.append("subject", subject);
     formData.append("file", file);
 
-    // PENTING: Backend document_staff mewajibkan letter_type & sender
-    // Untuk staff, kita isi default atau ambil dari input jika ada
-    if (isStaff) {
-      // Jika backend DocumentStaff mewajibkan sender, staff bisa isi sendiri atau kita hardcode
-      formData.append("sender", sender || "Staff Upload");
-      formData.append("letter_type", letterType);
-    } else {
+    // Kirim field ini hanya jika bukan staff (Admin mode)
+    // Staff tidak punya kolom ini di DB, jadi tidak perlu kirim
+    if (!isStaff) {
       formData.append("sender", sender);
       formData.append("letter_type", letterType);
 
-      // Data disposisi admin
       if (selectedUserIds.length > 0) {
         formData.append("target_user_ids", selectedUserIds.join(","));
       }
@@ -115,27 +106,33 @@ export function DocumentUploadForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {/* FIELD PENGIRIM (Wajib Admin, Opsional Staff) */}
-      <div className="space-y-2">
-        <Label htmlFor="sender">Pengirim / Asal Surat</Label>
-        <Input
-          id="sender"
-          placeholder="Nama pengirim dokumen"
-          value={sender}
-          onChange={(e) => setSender(e.target.value)}
-          required={!isStaff}
-          className="border-secondary/40"
-          disabled={loading}
-        />
-      </div>
+      {/* FIELD PENGIRIM: Hanya Admin */}
+      {!isStaff && (
+        <div className="space-y-2">
+          <Label htmlFor="sender">
+            Pengirim / Asal Surat <span className="text-red-500">*</span>
+          </Label>
+          <Input
+            id="sender"
+            placeholder="Contoh: Dinas Kesehatan"
+            value={sender}
+            onChange={(e) => setSender(e.target.value)}
+            required
+            className="border-secondary/40"
+            disabled={loading}
+          />
+        </div>
+      )}
 
-      {/* FIELD SUBJEK */}
+      {/* FIELD SUBJEK: Semua */}
       <div className="space-y-2">
-        <Label htmlFor="subject">Subjek / Perihal</Label>
+        <Label htmlFor="subject">
+          Subjek / Perihal <span className="text-red-500">*</span>
+        </Label>
         <Textarea
           id="subject"
           className="border-secondary/40"
-          placeholder="Masukkan subjek atau perihal dokumen"
+          placeholder="Masukkan keterangan dokumen..."
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
           required
@@ -144,25 +141,29 @@ export function DocumentUploadForm({
         />
       </div>
 
-      {/* FIELD TIPE SURAT (Tampil untuk Semua karena Backend Wajib) */}
-      <div className="space-y-2">
-        <Label htmlFor="letter_type">Tipe Surat</Label>
-        <Select
-          value={letterType}
-          onValueChange={setLetterType}
-          disabled={loading}
-        >
-          <SelectTrigger id="letter_type">
-            <SelectValue placeholder="Pilih tipe surat..." />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="masuk">Surat Masuk</SelectItem>
-            <SelectItem value="keluar">Surat Keluar</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      {/* FIELD TIPE SURAT: Hanya Admin */}
+      {!isStaff && (
+        <div className="space-y-2">
+          <Label htmlFor="letter_type">
+            Tipe Surat <span className="text-red-500">*</span>
+          </Label>
+          <Select
+            value={letterType}
+            onValueChange={setLetterType}
+            disabled={loading}
+          >
+            <SelectTrigger id="letter_type">
+              <SelectValue placeholder="Pilih tipe surat..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="masuk">Surat Masuk</SelectItem>
+              <SelectItem value="keluar">Surat Keluar</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
-      {/* FIELD DISPOSISI - HANYA ADMIN */}
+      {/* FIELD DISPOSISI: Hanya Admin */}
       {!isStaff && (
         <div className="p-4 border rounded-lg bg-slate-50 space-y-3">
           <div className="flex items-center justify-between">
@@ -184,7 +185,9 @@ export function DocumentUploadForm({
 
       {/* FIELD FILE UPLOAD */}
       <div className="space-y-2">
-        <Label htmlFor="file">File Dokumen</Label>
+        <Label htmlFor="file">
+          File Dokumen <span className="text-red-500">*</span>
+        </Label>
         <Input
           id="file"
           type="file"
@@ -201,7 +204,6 @@ export function DocumentUploadForm({
         )}
       </div>
 
-      {/* TOMBOL ACTION */}
       <div className="flex gap-3 pt-4">
         <Button type="submit" disabled={loading} className="flex-1">
           {loading ? (
@@ -212,9 +214,7 @@ export function DocumentUploadForm({
           ) : (
             <>
               <UploadIcon className="mr-2 h-4 w-4" />
-              {!isStaff && selectedUserIds.length > 0
-                ? "Upload & Kirim Perintah"
-                : "Upload Dokumen"}
+              {!isStaff ? "Upload & Kirim" : "Simpan Dokumen"}
             </>
           )}
         </Button>

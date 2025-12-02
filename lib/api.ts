@@ -63,14 +63,11 @@ api.interceptors.response.use(
         return response;
     },
     (error) => {
-        console.error('Error details:', error.response?.data);
-        
         if (error.response?.status === 401) {
             const isAuthEndpoint = error.config?.url?.includes('/login') || 
                                     error.config?.url?.includes('/register');
             
             if (!isAuthEndpoint && typeof window !== 'undefined') {
-                console.log('Redirecting to login...');
                 Cookies.remove('access_token');
                 window.location.href = '/login';
             }
@@ -340,6 +337,7 @@ export const userAPI = {
             throw error;
         }
     },
+
    create: async (data: {
         name: string;
         username: string; 
@@ -366,7 +364,7 @@ export const userAPI = {
             name: string;
             username: string; 
             password?: string;
-            role: 'admin' | 'staff' | 'superadmin'; // Update Type
+            role: 'admin' | 'staff' | 'superadmin';
         }
     ) => {
         const response = await api.put<{ user: User }>(`/users/${id}`, data);
@@ -386,7 +384,6 @@ export const notificationAPI = {
       const response = await api.get<NotificationsApiResponse>('/notifications');
       return response.data;
     } catch (error) {
-      console.error(' Notification fetch error:', error);
       throw error;
     }
   },

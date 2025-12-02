@@ -21,7 +21,7 @@ import Link from "next/link";
 interface SuperiorOrderTableProps {
   orders: SuperiorOrder[];
   onRefresh: () => void;
-  isStaffView?: boolean; // Prop baru
+  isStaffView?: boolean;
 }
 
 export function SuperiorOrderTable({
@@ -50,7 +50,7 @@ export function SuperiorOrderTable({
           <TableRow>
             <TableHead>Tanggal</TableHead>
             <TableHead>Dokumen</TableHead>
-            {/* Admin melihat penerima, Staff tidak perlu (karena itu dirinya sendiri) */}
+            {/* Admin melihat penerima */}
             {!isStaffView && <TableHead>Penerima (Staff)</TableHead>}
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Aksi</TableHead>

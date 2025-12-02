@@ -1,12 +1,24 @@
 "use client";
 
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { FileText, Menu, ShieldCheck, X } from "lucide-react";
-import { UserNav } from "@/components/users/UserNav";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Menu,
+  LogOut,
+  User as UserIcon,
+  Settings,
+  ShieldAlert,
+} from "lucide-react";
 import { User } from "@/types";
-import { NotificationBell } from "@/components/dashboards/NotificationBell";
+import { NotificationBell } from "./NotificationBell";
 
 interface DashboardHeaderProps {
   user: User | null;
@@ -23,46 +35,104 @@ export function DashboardHeader({
   sidebarOpen,
   setSidebarOpen,
 }: DashboardHeaderProps) {
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  // Format Role Display
+  const getRoleLabel = (role?: string) => {
+    if (role === "superadmin") return "Super Admin";
+    if (role === "admin") return "Administrator";
+    return "Staff Pegawai";
+  };
+
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
-      <div className="flex h-16 items-center px-4 lg:px-8">
+    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
+      <div className="flex h-16 items-center px-4 md:px-6">
+        {/* Mobile Menu Button */}
         <Button
           variant="ghost"
           size="icon"
-          className="lg:hidden mr-2"
+          className="mr-4 lg:hidden"
           onClick={() => setSidebarOpen(!sidebarOpen)}
         >
-          {sidebarOpen ? (
-            <X className="h-5 w-5" />
-          ) : (
-            <Menu className="h-5 w-5" />
-          )}
+          <Menu className="h-6 w-6" />
+          <span className="sr-only">Toggle Menu</span>
         </Button>
 
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <FileText className="w-5 h-5 text-primary-foreground" />
-          </div>
-          <h1 className="text-xl font-bold hidden sm:block">Arsip Digital</h1>
-        </Link>
+        {/* Logo / Title */}
+        <div className="flex items-center gap-2 font-bold text-lg md:text-xl text-primary">
+          <ShieldAlert className="h-6 w-6" />
+          <span className="hidden md:inline-block">E-Arsip Dinsos</span>
+          <span className="md:hidden">E-Arsip</span>
+        </div>
 
-        {isAdmin && (
-          <Badge variant="default" className="ml-4 hidden md:flex">
-            <ShieldCheck className="mr-1 h-3 w-3" />
-            Admin
-          </Badge>
-        )}
-
-        {/* KONTEN KANAN */}
-        <div className="ml-auto flex items-center gap-2">
-          <div className="hidden md:flex flex-col items-end mr-2">
-            <span className="text-sm font-semibold">{user?.name}</span>
-            <span className="text-xs text-muted-foreground capitalize">
-              {user?.role}
-            </span>
-          </div>
+        {/* Right Section */}
+        <div className="ml-auto flex items-center gap-2 md:gap-4">
           <NotificationBell />
-          <UserNav user={user} logout={logout} isAdmin={isAdmin} />
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className="relative h-10 w-10 rounded-full"
+              >
+                <Avatar className="h-9 w-9 border-2 border-primary/10">
+                  <AvatarImage src={user?.photo_url || ""} alt={user?.name} />
+                  <AvatarFallback className="bg-primary/5 font-bold text-primary">
+                    {user?.name ? getInitials(user.name) : "U"}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end" forceMount>
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">
+                    {user?.name}
+                  </p>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <span
+                      className={`text-xs px-1.5 py-0.5 rounded font-semibold ${
+                        user?.role === "superadmin"
+                          ? "bg-red-100 text-red-700"
+                          : user?.role === "admin"
+                          ? "bg-blue-100 text-blue-700"
+                          : "bg-slate-100 text-slate-700"
+                      }`}
+                    >
+                      {getRoleLabel(user?.role)}
+                    </span>
+                  </div>
+                  <p className="text-xs leading-none text-muted-foreground mt-1">
+                    @{user?.username}
+                  </p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {/* <DropdownMenuItem>
+                <UserIcon className="mr-2 h-4 w-4" />
+                <span>Profil Saya</span>
+              </DropdownMenuItem> */}
+              {/* <DropdownMenuItem>
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Pengaturan</span>
+              </DropdownMenuItem> */}
+              {/* <DropdownMenuSeparator /> */}
+              <DropdownMenuItem
+                onClick={logout}
+                className="text-red-600 focus:bg-red-50 focus:text-red-700 cursor-pointer"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Keluar</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>
