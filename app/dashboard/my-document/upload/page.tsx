@@ -21,6 +21,7 @@ export default function UploadDocumentStaffPage() {
     if (!user) return;
     setLoading(true);
     try {
+      // Logika upload tetap di sini, Form memanggil ini via onSubmit
       const response = await documentStaffAPI.create(formData);
       toast.success("Dokumen berhasil diupload!", {
         description: response.message || "File telah tersimpan di arsip anda",
@@ -71,10 +72,10 @@ export default function UploadDocumentStaffPage() {
         </CardHeader>
         <CardContent>
           <DocumentUploadForm
-            onSubmit={handleUpload}
+            onSubmit={handleUpload} // Menggunakan onSubmit, cocok dengan Form baru
             loading={loading}
             cancelHref="/dashboard/my-document"
-            isStaff={true}
+            isStaff={true} // Mode Staff
           />
         </CardContent>
       </Card>

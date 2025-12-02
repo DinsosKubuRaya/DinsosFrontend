@@ -20,8 +20,8 @@ import Link from "next/link";
 
 interface SuperiorOrderTableProps {
   orders: SuperiorOrder[];
-  onRefresh?: () => void;
-  isStaffView?: boolean;
+  onRefresh: () => void;
+  isStaffView?: boolean; // Prop baru
 }
 
 export function SuperiorOrderTable({
@@ -34,7 +34,7 @@ export function SuperiorOrderTable({
       try {
         await superiorOrderAPI.delete(id);
         toast.success("Perintah berhasil dihapus");
-        if (onRefresh) onRefresh();
+        onRefresh();
       } catch (error) {
         toast.error(
           error instanceof Error ? error.message : "Gagal menghapus data"
@@ -44,13 +44,13 @@ export function SuperiorOrderTable({
   };
 
   return (
-    <div className="rounded-md border bg-card text-card-foreground shadow-sm">
+    <div className="rounded-md border bg-card">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Tanggal</TableHead>
             <TableHead>Dokumen</TableHead>
-            {/* Sembunyikan kolom Penerima jika yang melihat adalah Staff */}
+            {/* Admin melihat penerima, Staff tidak perlu (karena itu dirinya sendiri) */}
             {!isStaffView && <TableHead>Penerima (Staff)</TableHead>}
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Aksi</TableHead>
@@ -70,8 +70,8 @@ export function SuperiorOrderTable({
             </TableRow>
           ) : (
             orders.map((order) => (
-              <TableRow key={order.id} className="hover:bg-muted/50">
-                <TableCell className="whitespace-nowrap">
+              <TableRow key={order.id}>
+                <TableCell>
                   {order.created_at
                     ? format(new Date(order.created_at), "dd MMM yyyy, HH:mm", {
                         locale: idLocale,
@@ -81,39 +81,37 @@ export function SuperiorOrderTable({
                 <TableCell>
                   <div className="flex flex-col max-w-[250px]">
                     <span
-                      className="font-medium truncate"
+                      className="font-medium truncate text-foreground"
                       title={order.document?.subject}
                     >
                       {order.document?.subject || "Dokumen tidak ditemukan"}
                     </span>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                    <div className="flex items-center gap-2 mt-1">
                       <Badge
                         variant="outline"
-                        className="text-[10px] px-1 py-0 h-5"
+                        className="text-[10px] h-5 px-1.5"
                       >
                         {order.document?.letter_type === "masuk"
                           ? "Masuk"
                           : "Keluar"}
                       </Badge>
-                      {/* Tampilkan nama file sedikit */}
-                      <span className="truncate max-w-[100px]">
-                        {order.document?.file_name?.split("/").pop()}
+                      <span className="text-xs text-muted-foreground truncate">
+                        {order.document?.sender}
                       </span>
                     </div>
                   </div>
                 </TableCell>
 
-                {/* Kolom Penerima (Admin View Only) */}
                 {!isStaffView && (
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
                         {order.user?.name?.substring(0, 2).toUpperCase() ||
                           "??"}
                       </div>
                       <div className="flex flex-col">
                         <span className="text-sm font-medium">
-                          {order.user?.name || "User Terhapus"}
+                          {order.user?.name || "User dihapus"}
                         </span>
                         <span className="text-xs text-muted-foreground">
                           @{order.user?.username || "-"}
@@ -125,8 +123,8 @@ export function SuperiorOrderTable({
 
                 <TableCell>
                   <Badge
-                    variant="outline"
-                    className="bg-green-50 text-green-700 border-green-200"
+                    variant="secondary"
+                    className="bg-green-100 text-green-700 hover:bg-green-200"
                   >
                     Terkirim
                   </Badge>
@@ -134,11 +132,9 @@ export function SuperiorOrderTable({
 
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    {/* Tombol Lihat Dokumen (Untuk Semua) */}
+                    {/* Tombol Lihat (Semua bisa lihat) */}
                     {order.document_id && (
-                      <Link
-                        href={`/dashboard/my-document/${order.document_id}`}
-                      >
+                      <Link href={`/dashboard/documents/${order.document_id}`}>
                         <Button
                           variant="ghost"
                           size="icon"

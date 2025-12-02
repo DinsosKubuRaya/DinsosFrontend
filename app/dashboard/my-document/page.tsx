@@ -7,8 +7,8 @@ import { DocumentFilter } from "@/components/documents/DocumentFilter";
 import { DocumentTable } from "@/components/documents/DocumentTable";
 import { DocumentListMobile } from "@/components/documents/DocumentListMobile";
 import { FileText, Upload, User, ShieldCheck } from "lucide-react";
-import { documentStaffAPI } from "@/lib/api";
-import { Document } from "@/types";
+import { documentStaffAPI, superiorOrderAPI } from "@/lib/api";
+import { Document, DocumentStaff } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/context/AuthContext";
 import { Badge } from "@/components/ui/badge";
+import { getUserId } from "@/lib/userHelpers"; // Import Helper User ID
 
 export default function MyDocumentPage() {
   const { user, isAdmin } = useAuth();
@@ -53,9 +54,60 @@ export default function MyDocumentPage() {
     try {
       const params: { search?: string } = {};
       if (search) params.search = search;
+
+      // Ambil ID User yang sedang login
+      const currentUserId = user ? getUserId(user) : "";
+
+      // 1. Ambil Dokumen Pribadi (Staff)
       const response = await documentStaffAPI.getAll(params);
-      const docs = response.documents || [];
-      setAllDocuments(docs);
+
+      // FILTER KETAT: Hanya dokumen milik user ini
+      const myDocs: Document[] = (response.documents || [])
+        .filter((doc: DocumentStaff) => {
+          // Pastikan user_id dokumen sama dengan user login
+          return String(doc.user_id) === String(currentUserId);
+        })
+        .map((doc: DocumentStaff) => ({
+          ...doc,
+          source: "document_staff",
+        })) as unknown as Document[];
+
+      // 2. Ambil Dokumen Masuk dari Admin (Hanya untuk Staff)
+      let adminDocs: Document[] = [];
+
+      if (!isAdmin && currentUserId) {
+        try {
+          const orders = await superiorOrderAPI.getAll();
+
+          // FILTER KETAT: Hanya perintah yang ditujukan ke user ini
+          const myOrders = orders.filter(
+            (o) => String(o.user_id) === String(currentUserId)
+          );
+
+          adminDocs = myOrders
+            .map((order): Document | null => {
+              if (!order.document) return null;
+
+              // Transformasi ke tipe Document
+              return {
+                ...order.document,
+                source: "document", // Tandai sebagai dokumen admin
+                user: {
+                  name: "Admin / Atasan",
+                  username: "admin",
+                  role: "admin",
+                },
+                created_at: order.created_at, // Gunakan tanggal disposisi
+              } as Document;
+            })
+            .filter((doc): doc is Document => doc !== null);
+        } catch (err) {
+          console.error("Gagal memuat surat masuk:", err);
+        }
+      }
+
+      // Gabungkan data
+      setAllDocuments([...myDocs, ...adminDocs]);
     } catch (error) {
       console.error("Error fetching documents:", error);
       toast.error("Gagal memuat dokumen");
@@ -65,7 +117,7 @@ export default function MyDocumentPage() {
     }
   };
 
-  // --- LOGIKA PEMISAHAN TAB ---
+  // --- LOGIKA FILTER TAB ---
   const personalDocuments = allDocuments.filter(
     (doc) => doc.source === "document_staff"
   );
@@ -93,7 +145,13 @@ export default function MyDocumentPage() {
 
   const handleDownload = async (doc: Document) => {
     try {
-      await documentStaffAPI.download(doc.id);
+      if (doc.source === "document") {
+        // Dokumen admin dibuka di tab baru (public URL atau endpoint download admin)
+        window.open(doc.file_url, "_blank");
+      } else {
+        // Dokumen staff gunakan endpoint download staff
+        await documentStaffAPI.download(doc.id);
+      }
       toast.success("Membuka file...");
     } catch (error) {
       console.error("Download error:", error);
@@ -131,6 +189,7 @@ export default function MyDocumentPage() {
           </p>
         </div>
 
+        {/* Tombol Upload hanya muncul di tab personal atau jika Admin */}
         {(activeTab === "personal" || isAdmin) && (
           <Link href="/dashboard/my-document/upload">
             <Button>
@@ -141,7 +200,7 @@ export default function MyDocumentPage() {
         )}
       </div>
 
-      {/* --- TAB untuk Staff --- */}
+      {/* --- TAB NAVIGASI (Hanya Staff) --- */}
       {!isAdmin && (
         <div className="flex p-1 bg-muted/50 rounded-lg w-full sm:w-fit border">
           <button
@@ -196,7 +255,7 @@ export default function MyDocumentPage() {
               <p className="text-sm mt-1">
                 {activeTab === "personal"
                   ? "Anda belum mengupload dokumen apapun."
-                  : "Belum ada dokumen masuk dari Admin."}
+                  : "Belum ada dokumen yang didisposisikan kepada Anda."}
               </p>
             </div>
           ) : (
@@ -208,7 +267,7 @@ export default function MyDocumentPage() {
                 onDownload={handleDownload}
                 onDeleteClick={handleDeleteClick}
                 isMyDocumentPage={true}
-                showSourceColumn={false}
+                showSourceColumn={isAdmin}
               />
 
               <DocumentListMobile
@@ -218,7 +277,7 @@ export default function MyDocumentPage() {
                 onDownload={handleDownload}
                 onDeleteClick={handleDeleteClick}
                 isMyDocumentPage={true}
-                showSourceBadge={false}
+                showSourceBadge={isAdmin}
               />
             </div>
           )}
