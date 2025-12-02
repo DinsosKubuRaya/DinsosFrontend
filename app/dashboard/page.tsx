@@ -9,8 +9,9 @@ import {
   Activity,
   User,
   ShieldCheck,
+  AlertCircle,
 } from "lucide-react";
-import { documentStaffAPI } from "@/lib/api";
+import { documentAPI, documentStaffAPI, superiorOrderAPI } from "@/lib/api";
 import { Document, DocumentStaff } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import { getUserId } from "@/lib/userHelpers";
@@ -22,18 +23,22 @@ import { DocumentListMobile } from "@/components/documents/DocumentListMobile";
 export default function DashboardPage() {
   const { user, isAdmin } = useAuth();
   const [loading, setLoading] = useState(true);
+
   const [stats, setStats] = useState({
     total: 0,
     myDocs: 0,
     adminDocs: 0,
     masuk: 0,
     keluar: 0,
+    pendingOrders: 0,
   });
 
-  const [recentDocuments, setRecentDocuments] = useState<DocumentStaff[]>([]);
+  const [recentDocuments, setRecentDocuments] = useState<
+    Document[] | DocumentStaff[]
+  >([]);
 
   useEffect(() => {
-    if (user || isAdmin) {
+    if (user) {
       fetchDashboardData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -42,24 +47,70 @@ export default function DashboardPage() {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const response = await documentStaffAPI.getAll();
-      let docs = response.documents || [];
-      const currentUserId = user ? String(getUserId(user)) : "";
+      let docs: (Document | DocumentStaff)[] = [];
+      let pendingCount = 0;
 
-      if (!isAdmin) {
-        docs = docs.filter((doc) => {
+      if (isAdmin) {
+        // === LOGIKA ADMIN ===
+        // Admin memanggil API /documents (Admin) dan /document_staff
+        const [docResponse, staffDocResponse] = await Promise.all([
+          documentAPI.getAll(),
+          documentStaffAPI.getAll(),
+        ]);
+
+        const adminDocs = docResponse.documents || [];
+        const staffDocs = staffDocResponse.documents || [];
+
+        // Gabungkan untuk ditampilkan di tabel terbaru
+        // Kita beri tanda source agar bisa dibedakan di UI
+        const combinedDocs = [
+          ...adminDocs.map((d) => ({ ...d, source: "document" })),
+          ...staffDocs.map((d) => ({ ...d, source: "document_staff" })),
+        ];
+
+        setStats({
+          total: adminDocs.length + staffDocs.length,
+          myDocs: 0,
+          adminDocs: adminDocs.length,
+          masuk: adminDocs.filter((d) => d.letter_type === "masuk").length,
+          keluar: adminDocs.filter((d) => d.letter_type === "keluar").length,
+          pendingOrders: 0,
+        });
+
+        docs = combinedDocs;
+      } else {
+        // === LOGIKA STAFF (FIX 403 ERROR) ===
+        // Staff HANYA boleh panggil documentStaffAPI dan superiorOrderAPI
+        // JANGAN panggil documentAPI (Route /documents itu protected Admin Only)
+        const [staffResponse, ordersResponse] = await Promise.all([
+          documentStaffAPI.getAll(),
+          superiorOrderAPI.getAll(),
+        ]);
+
+        const allStaffDocs = staffResponse.documents || [];
+        const currentUserId = user ? String(getUserId(user)) : "";
+
+        // Filter dokumen: Milik sendiri ATAU dokumen publik dari admin
+        docs = allStaffDocs.filter((doc) => {
           const docUserId = doc.user_id ? String(doc.user_id) : "";
           const isOwnDocument = docUserId === currentUserId;
           const isAdminDocument = doc.source === "document";
-
           return isOwnDocument || isAdminDocument;
         });
+
         const myDocsCount = docs.filter(
-          (d) => d.source === "document_staff"
+          (d) =>
+            d.source === "document_staff" && String(d.user_id) === currentUserId
         ).length;
         const adminDocsCount = docs.filter(
           (d) => d.source === "document"
         ).length;
+
+        // Hitung Perintah Masuk
+        const myOrders = Array.isArray(ordersResponse)
+          ? ordersResponse.filter((o) => o.user_id === currentUserId)
+          : [];
+        pendingCount = myOrders.length;
 
         setStats({
           total: docs.length,
@@ -67,17 +118,11 @@ export default function DashboardPage() {
           adminDocs: adminDocsCount,
           masuk: 0,
           keluar: 0,
-        });
-      } else {
-        setStats({
-          total: docs.length,
-          myDocs: 0,
-          adminDocs: 0,
-          masuk: docs.filter((d) => d.letter_type === "masuk").length,
-          keluar: docs.filter((d) => d.letter_type === "keluar").length,
+          pendingOrders: pendingCount,
         });
       }
 
+      // Sort dokumen terbaru
       const sortedDocs = docs.sort(
         (a, b) =>
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -92,16 +137,25 @@ export default function DashboardPage() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("id-ID", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
+    try {
+      return new Date(dateString).toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+    } catch {
+      return "-";
+    }
   };
 
-  const handleDownload = async (doc: Document) => {
+  const handleDownload = async (doc: Document | DocumentStaff) => {
     try {
-      await documentStaffAPI.download(doc.id);
+      // Gunakan API yang sesuai berdasarkan tipe dokumen/user
+      if (isAdmin && doc.source === "document") {
+        await documentAPI.download(doc.id);
+      } else {
+        await documentStaffAPI.download(doc.id);
+      }
     } catch (e) {
       console.error(e);
     }
@@ -115,6 +169,8 @@ export default function DashboardPage() {
     );
   }
 
+  // Casting tipe agar kompatibel dengan komponen DocumentTable
+  // Kita gunakan any casting aman karena struktur Document dan DocumentStaff mirip untuk keperluan tabel
   const displayDocs = recentDocuments as unknown as Document[];
 
   return (
@@ -129,19 +185,20 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        {/* TOTAL DOKUMEN */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {/* TOTAL DOKUMEN (UMUM) */}
         <Card>
           <CardHeader className="flex flex-row justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Dokumen</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Arsip</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.total}</div>
+            <p className="text-xs text-muted-foreground">Dokumen tersimpan</p>
           </CardContent>
         </Card>
 
-        {/* LOGIC UNTUK ADMIN VS STAFF */}
+        {/* WIDGET CONDITIONAL BERDASARKAN ROLE */}
         {isAdmin ? (
           <>
             <Card>
@@ -153,6 +210,9 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats.masuk}</div>
+                <p className="text-xs text-muted-foreground">
+                  Total surat masuk
+                </p>
               </CardContent>
             </Card>
             <Card>
@@ -164,11 +224,56 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats.keluar}</div>
+                <p className="text-xs text-muted-foreground">
+                  Total surat keluar
+                </p>
               </CardContent>
             </Card>
           </>
         ) : (
           <>
+            {/* WIDGET KHUSUS STAFF: PERINTAH MASUK */}
+            <Card
+              className={
+                stats.pendingOrders > 0 ? "bg-orange-50 border-orange-200" : ""
+              }
+            >
+              <CardHeader className="flex flex-row justify-between pb-2">
+                <CardTitle
+                  className={`text-sm font-medium ${
+                    stats.pendingOrders > 0 ? "text-orange-700" : ""
+                  }`}
+                >
+                  Perintah Masuk
+                </CardTitle>
+                <AlertCircle
+                  className={`h-4 w-4 ${
+                    stats.pendingOrders > 0
+                      ? "text-orange-600"
+                      : "text-muted-foreground"
+                  }`}
+                />
+              </CardHeader>
+              <CardContent>
+                <div
+                  className={`text-2xl font-bold ${
+                    stats.pendingOrders > 0 ? "text-orange-700" : ""
+                  }`}
+                >
+                  {stats.pendingOrders}
+                </div>
+                <p
+                  className={`text-xs ${
+                    stats.pendingOrders > 0
+                      ? "text-orange-600"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  Perlu tindak lanjut
+                </p>
+              </CardContent>
+            </Card>
+
             {/* DOKUMEN SAYA */}
             <Card>
               <CardHeader className="flex flex-row justify-between pb-2">
@@ -179,37 +284,38 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats.myDocs}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Diunggah oleh Anda
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* DOKUMEN DARI ADMIN */}
-            <Card>
-              <CardHeader className="flex flex-row justify-between pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Masuk dari Admin
-                </CardTitle>
-                <ShieldCheck className="h-4 w-4 text-purple-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.adminDocs}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Perlu ditinjau
+                <p className="text-xs text-muted-foreground">
+                  Diupload oleh Anda
                 </p>
               </CardContent>
             </Card>
           </>
         )}
+
+        {/* STATUS SISTEM (UMUM) */}
+        <Card>
+          <CardHeader className="flex flex-row justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Status Sistem</CardTitle>
+            <Activity className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">Online</div>
+            <p className="text-xs text-muted-foreground">
+              Server berjalan normal
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
+      {/* TABEL DOKUMEN TERBARU */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5" /> Dokumen Terbaru
           </CardTitle>
-          <Link href="/dashboard/my-document">
+          <Link
+            href={isAdmin ? "/dashboard/documents" : "/dashboard/my-document"}
+          >
             <Button variant="outline" size="sm">
               Lihat Semua
             </Button>
@@ -223,8 +329,7 @@ export default function DashboardPage() {
                 isAdmin={isAdmin}
                 formatDate={formatDate}
                 onDownload={handleDownload}
-                isMyDocumentPage={true}
-                // Tampilkan kolom sumber di dashboard agar jelas asal dokumen
+                isMyDocumentPage={!isAdmin} // Staff tidak bisa edit/hapus dokumen admin
                 showSourceColumn={true}
               />
               <DocumentListMobile
@@ -232,7 +337,7 @@ export default function DashboardPage() {
                 isAdmin={isAdmin}
                 formatDate={formatDate}
                 onDownload={handleDownload}
-                isMyDocumentPage={true}
+                isMyDocumentPage={!isAdmin}
                 showSourceBadge={true}
               />
             </>

@@ -19,7 +19,7 @@ export default function DashboardLayout({
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Spinner className="h-8 w-8" />
+        <Spinner className="h-8 w-8 text-primary" />
       </div>
     );
   }
@@ -47,14 +47,16 @@ export default function DashboardLayout({
         {/* Overlay for mobile */}
         {sidebarOpen && (
           <div
-            className="fixed inset-0 z-20 bg-black/50 lg:hidden"
+            className="fixed inset-0 z-20 bg-black/50 lg:hidden backdrop-blur-sm"
             onClick={() => setSidebarOpen(false)}
           />
         )}
 
         {/* Main Content */}
-        <main className="flex-1 p-4 lg:p-8">
-          <div className="mx-auto max-w-7xl">{children}</div>
+        <main className="flex-1 p-4 lg:p-8 w-full max-w-[100vw] overflow-x-hidden">
+          <div className="mx-auto max-w-7xl animate-in fade-in duration-500">
+            {children}
+          </div>
         </main>
       </div>
     </div>

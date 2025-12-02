@@ -17,24 +17,22 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { User } from "@/types";
 
+interface UserFormData {
+  name: string;
+  username: string;
+  password: string;
+  role: "admin" | "staff" | "superadmin";
+}
+
 interface UserFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editingUser: User | null;
-  formData: {
-    name: string;
-    username: string;
-    password: string;
-    role: "admin" | "staff";
-  };
-  onFormChange: (data: {
-    name: string;
-    username: string;
-    password: string;
-    role: "admin" | "staff";
-  }) => void;
+  formData: UserFormData;
+  onFormChange: (data: UserFormData) => void;
   onSubmit: (e: React.FormEvent) => void;
   loading?: boolean;
+  isSuperAdmin?: boolean;
 }
 
 export function UserFormDialog({
@@ -45,6 +43,7 @@ export function UserFormDialog({
   onFormChange,
   onSubmit,
   loading = false,
+  isSuperAdmin = false,
 }: UserFormDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -67,6 +66,7 @@ export function UserFormDialog({
               }
               required
               disabled={loading}
+              placeholder="Contoh: Budi Santoso"
             />
           </div>
 
@@ -82,12 +82,18 @@ export function UserFormDialog({
               }
               required
               disabled={loading}
+              placeholder="username_login"
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="password">
-              Password {editingUser && "(Kosongkan jika tidak diubah)"}{" "}
+              Password{" "}
+              {editingUser && (
+                <span className="text-xs text-muted-foreground">
+                  (Kosongkan jika tidak diubah)
+                </span>
+              )}{" "}
               {!editingUser && <span className="text-destructive">*</span>}
             </Label>
             <Input
@@ -103,20 +109,28 @@ export function UserFormDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="role">Role</Label>
+            <Label htmlFor="role">Role / Jabatan</Label>
             <Select
               value={formData.role}
-              onValueChange={(value: "admin" | "staff") =>
+              onValueChange={(value: "admin" | "staff" | "superadmin") =>
                 onFormChange({ ...formData, role: value })
               }
               disabled={loading}
             >
               <SelectTrigger id="role">
-                <SelectValue />
+                <SelectValue placeholder="Pilih Role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="staff">Staff</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="staff">Staff (Pegawai)</SelectItem>
+                <SelectItem value="admin">Admin (Administrator)</SelectItem>
+                {isSuperAdmin && (
+                  <SelectItem
+                    value="superadmin"
+                    className="text-red-600 font-medium"
+                  >
+                    Superadmin (Akses Penuh)
+                  </SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -129,7 +143,7 @@ export function UserFormDialog({
                   Menyimpan...
                 </>
               ) : (
-                <>{editingUser ? "Update" : "Tambah"} User</>
+                <>{editingUser ? "Update Data" : "Buat User"}</>
               )}
             </Button>
             <Button

@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { documentStaffAPI } from "@/lib/api";
+import { Upload, CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
 import {
   Select,
   SelectContent,
@@ -13,221 +15,159 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Spinner } from "@/components/ui/spinner";
-import { Upload as UploadIcon } from "lucide-react";
-import { toast } from "sonner";
-
-// Import komponen untuk Disposisi
-import { UserMultiSelect } from "@/components/superior-orders/UserMultiSelect";
-import { userAPI } from "@/lib/api";
-import { User } from "@/types";
 
 interface DocumentUploadFormProps {
-  onSubmit: (formData: FormData) => Promise<void>;
-  loading: boolean;
-  cancelHref: string;
-  isStaff?: boolean;
+  onSuccess: () => void;
+  onCancel: () => void;
 }
 
 export function DocumentUploadForm({
-  onSubmit,
-  loading,
-  cancelHref,
-  isStaff = false,
+  onSuccess,
+  onCancel,
 }: DocumentUploadFormProps) {
-  const [sender, setSender] = useState("");
-  const [subject, setSubject] = useState("");
-  const [letterType, setLetterType] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-
-  // State untuk Disposisi (Hanya dipakai Admin)
-  const [users, setUsers] = useState<User[]>([]);
-  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
-
-  // Fetch users hanya jika user BUKAN staff (alias Admin)
-  useEffect(() => {
-    if (!isStaff) {
-      const fetchUsers = async () => {
-        try {
-          const data = await userAPI.getAll();
-          // Filter hanya staff agar admin tidak mendisposisi ke sesama admin
-          const staffOnly = Array.isArray(data)
-            ? data.filter((u) => u.role === "staff")
-            : [];
-          setUsers(staffOnly);
-        } catch (error) {
-          console.error("Gagal memuat daftar user:", error);
-        }
-      };
-      fetchUsers();
-    }
-  }, [isStaff]);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    sender: "",
+    subject: "",
+    letter_type: "masuk",
+    file: null as File | null,
+  });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      const selectedFile = e.target.files[0];
-      const maxSize = 10 * 1024 * 1024; // 10MB
-      if (selectedFile.size > maxSize) {
-        toast.error("File terlalu besar", {
-          description: "Ukuran maksimal file adalah 10MB",
-        });
-        return;
-      }
-      setFile(selectedFile);
+      setFormData({ ...formData, file: e.target.files[0] });
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!subject || !file) {
-      toast.error("Subjek dan File wajib diisi!");
+    if (!formData.file) {
+      toast.error("Mohon pilih file dokumen (PDF/Gambar)");
       return;
     }
 
-    // Validasi khusus Admin
-    if (!isStaff && (!sender || !letterType)) {
-      toast.error("Semua field wajib diisi!");
-      return;
+    setLoading(true);
+    const form = new FormData();
+    form.append("sender", formData.sender);
+    form.append("subject", formData.subject);
+    form.append("letter_type", formData.letter_type);
+    form.append("file", formData.file);
+
+    try {
+      await documentStaffAPI.create(form);
+      toast.success("Dokumen berhasil diupload!");
+      onSuccess();
+    } catch (error: unknown) {
+      console.error(error);
+      const msg =
+        error instanceof Error ? error.message : "Gagal mengupload dokumen";
+      toast.error(msg);
+    } finally {
+      setLoading(false);
     }
-
-    const formData = new FormData();
-    formData.append("subject", subject);
-    formData.append("file", file);
-
-    // Data tambahan khusus Admin
-    if (!isStaff) {
-      formData.append("sender", sender);
-      formData.append("letter_type", letterType);
-
-      // Masukkan data disposisi ke FormData jika ada staff yang dipilih
-      if (selectedUserIds.length > 0) {
-        formData.append("target_user_ids", selectedUserIds.join(","));
-      }
-    }
-
-    await onSubmit(formData);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      {/* FIELD KHUSUS ADMIN: PENGIRIM */}
-      {!isStaff && (
-        <div className="space-y-2">
-          <Label htmlFor="sender">Pengirim</Label>
-          <Input
-            id="sender"
-            placeholder="Nama pengirim dokumen"
-            value={sender}
-            onChange={(e) => setSender(e.target.value)}
-            required={!isStaff}
-            className="border-secondary/40"
-            disabled={loading}
-          />
-        </div>
-      )}
-
-      {/* FIELD UMUM: SUBJEK */}
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="subject">Subjek / Perihal</Label>
-        <Textarea
-          id="subject"
-          className="border-secondary/40"
-          placeholder="Masukkan subjek atau perihal dokumen"
-          value={subject}
-          onChange={(e) => setSubject(e.target.value)}
+        <Label htmlFor="sender">
+          Pengirim / Asal Surat <span className="text-red-500">*</span>
+        </Label>
+        <Input
+          id="sender"
+          placeholder="Contoh: Dinas Kesehatan / Bagian Umum"
+          value={formData.sender}
+          onChange={(e) => setFormData({ ...formData, sender: e.target.value })}
           required
-          rows={3}
           disabled={loading}
         />
       </div>
 
-      {/* FIELD KHUSUS ADMIN: TIPE SURAT & DISPOSISI */}
-      {!isStaff && (
-        <>
-          <div className="space-y-2">
-            <Label htmlFor="letter_type">Tipe Surat</Label>
-            <Select
-              value={letterType}
-              onValueChange={setLetterType}
-              required={!isStaff}
-              disabled={loading}
-            >
-              <SelectTrigger id="letter_type">
-                <SelectValue placeholder="Pilih tipe surat..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="masuk">Surat Masuk</SelectItem>
-                <SelectItem value="keluar">Surat Keluar</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Bagian Disposisi - Hanya Muncul untuk Admin */}
-          <div className="p-4 border rounded-lg bg-slate-50 space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-base font-semibold text-slate-700">
-                Disposisi / Perintah ke Staff
-              </Label>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Pilih staff di bawah ini untuk menjadikan dokumen ini sebagai
-              Perintah Atasan.
-            </p>
-            <UserMultiSelect
-              users={users}
-              selectedUserIds={selectedUserIds}
-              onChange={setSelectedUserIds}
-            />
-          </div>
-        </>
-      )}
-
-      {/* FIELD UMUM: FILE UPLOAD */}
       <div className="space-y-2">
-        <Label htmlFor="file">File Dokumen</Label>
-        <Input
-          id="file"
-          type="file"
-          onChange={handleFileChange}
+        <Label htmlFor="subject">
+          Perihal / Subjek <span className="text-red-500">*</span>
+        </Label>
+        <Textarea
+          id="subject"
+          placeholder="Contoh: Laporan Kegiatan Bulanan..."
+          value={formData.subject}
+          onChange={(e) =>
+            setFormData({ ...formData, subject: e.target.value })
+          }
           required
-          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp,.xls,.xlsx,.ppt,.pptx"
           disabled={loading}
-          className="border-secondary/40 text-gray-500"
         />
-        {file && (
-          <p className="text-sm text-muted-foreground">
-            File: {file.name} ({(file.size / 1024).toFixed(2)} KB)
-          </p>
-        )}
-        <p className="text-xs text-muted-foreground">
-          Format: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, JPG, PNG (Max 10MB)
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="letter_type">
+          Jenis Surat <span className="text-red-500">*</span>
+        </Label>
+        <Select
+          value={formData.letter_type}
+          onValueChange={(val) =>
+            setFormData({ ...formData, letter_type: val })
+          }
+          disabled={loading}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Pilih jenis surat" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="masuk">Surat Masuk</SelectItem>
+            <SelectItem value="keluar">Surat Keluar</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-[10px] text-muted-foreground">
+          *Wajib dipilih sesuai kategori arsip.
         </p>
       </div>
 
-      {/* TOMBOL ACTION */}
-      <div className="flex gap-3 pt-4">
-        <Button type="submit" disabled={loading} className="flex-1">
-          {loading ? (
-            <>
-              <Spinner className="mr-2" />
-              Mengupload...
-            </>
+      <div className="space-y-2">
+        <Label htmlFor="file">
+          File Dokumen <span className="text-red-500">*</span>
+        </Label>
+        <div className="border-2 border-dashed rounded-lg p-6 hover:bg-muted/50 transition-colors text-center cursor-pointer relative">
+          <Input
+            id="file"
+            type="file"
+            onChange={handleFileChange}
+            accept=".pdf,.jpg,.jpeg,.png"
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            disabled={loading}
+          />
+          {formData.file ? (
+            <div className="flex flex-col items-center gap-2 text-green-600">
+              <CheckCircle2 className="h-8 w-8" />
+              <span className="text-sm font-medium">{formData.file.name}</span>
+              <span className="text-xs text-muted-foreground">
+                {(formData.file.size / 1024 / 1024).toFixed(2)} MB
+              </span>
+            </div>
           ) : (
-            <>
-              <UploadIcon className="mr-2 h-4 w-4" />
-              {/* Ubah teks tombol jika ada disposisi yang dipilih */}
-              {!isStaff && selectedUserIds.length > 0
-                ? "Upload & Kirim Perintah"
-                : "Upload Dokumen"}
-            </>
+            <div className="flex flex-col items-center gap-2 text-muted-foreground">
+              <Upload className="h-8 w-8" />
+              <span className="text-sm">
+                Klik untuk upload atau drag & drop
+              </span>
+              <span className="text-xs">PDF, JPG, PNG (Max 10MB)</span>
+            </div>
           )}
+        </div>
+      </div>
+
+      <div className="flex gap-3 pt-4 justify-end">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={loading}
+        >
+          Batal
         </Button>
-        <Link href={cancelHref}>
-          <Button type="button" variant="outline" disabled={loading}>
-            Batal
-          </Button>
-        </Link>
+        <Button type="submit" disabled={loading}>
+          {loading ? "Mengupload..." : "Simpan Dokumen"}
+        </Button>
       </div>
     </form>
   );

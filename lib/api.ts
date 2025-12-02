@@ -98,8 +98,8 @@ export const authAPI = {
     },
 
     me: async () => {
-        const response = await api.get<User>('/users/me');
-        return response.data;
+        const response = await api.get<ApiResponse<User>>('/users/me');
+        return extractData<User>(response);
     },
 
     logout: async () => {
@@ -139,17 +139,15 @@ export const activityLogAPI = {
   },
 };
 
-// ==== Superior Order API (BARU: Ditambahkan) ====
+// ==== Superior Order API ====
 export const superiorOrderAPI = {
     create: async (data: CreateSuperiorOrderRequest) => {
-        // Menggunakan ApiResponse agar konsisten dengan library lama
         const response = await api.post<ApiResponse<null>>('/superior_orders', data);
         return response.data;
     },
 
     getAll: async () => {
         const response = await api.get<ApiResponse<SuperiorOrder[]>>('/superior_orders');
-        // Handle jika data dibungkus 'data' atau langsung array
         const data = response.data.data || response.data;
         return Array.isArray(data) ? data : ([] as SuperiorOrder[]);
     },
@@ -313,29 +311,45 @@ export const documentStaffAPI = {
   },
 };
 
-//  ==== User API (Admin only) =====
+//  ==== User API (Admin & Superadmin) =====
 export const userAPI = {
-   getAll: async () => {
+   getAll: async (): Promise<User[]> => {
         try {
             const response = await api.get('/users');       
             const users = response.data?.users || response.data || [];            
             if (!Array.isArray(users)) {
                 return [];
             }
-            return users;         
+            return users as User[];         
         } catch (error) {
             console.error("Error fetching users:", error);
             throw error;
         }
     },
 
+   getUsersForFilter: async (): Promise<User[]> => {
+        try {
+            const response = await api.get('/users/for-filter');
+            const users = response.data?.users || response.data || [];
+            if (!Array.isArray(users)) {
+                return [];
+            }
+            return users as User[];
+        } catch (error) {
+            console.error("Error fetching filter users:", error);
+            throw error;
+        }
+    },
    create: async (data: {
         name: string;
         username: string; 
         password: string;
-        role: 'admin' | 'staff';
+        role: 'admin' | 'staff' | 'superadmin'; 
     }) => {
-        const endpoint = data.role === 'admin' ? '/users/admin' : '/users/staff';
+        let endpoint = '/users/staff';
+        if (data.role === 'admin') endpoint = '/users/admin';
+        if (data.role === 'superadmin') endpoint = '/users/superadmin';
+
         const dataToSend = {
             name: data.name,
             username: data.username,
@@ -352,7 +366,7 @@ export const userAPI = {
             name: string;
             username: string; 
             password?: string;
-            role: 'admin' | 'staff';
+            role: 'admin' | 'staff' | 'superadmin'; // Update Type
         }
     ) => {
         const response = await api.put<{ user: User }>(`/users/${id}`, data);

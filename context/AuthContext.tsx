@@ -31,11 +31,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.role === "admin" || user?.role === "superadmin";
 
   useEffect(() => {
     const token = Cookies.get("access_token");
-
     if (token) {
       fetchUser();
     } else {
@@ -48,7 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const userData = await authAPI.me();
       setUser(userData);
     } catch (error) {
-      console.error(" AuthContext: Failed to fetch user:", error);
+      console.error("AuthContext: Failed to fetch user:", error);
       Cookies.remove("access_token");
       setUser(null);
     } finally {
@@ -56,29 +55,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // --- REGISTER ---
   const register = async (data: RegisterData) => {
-    try {
-      await authAPI.register(data);
-      router.push("/login");
-    } catch (error: unknown) {
-      throw error;
-    }
+    await authAPI.register(data);
+    router.push("/login");
   };
 
-  // --- LOGIN ---
   const login = async (username: string, password: string) => {
     try {
       const data = await authAPI.login(username, password);
-
       if (data.token) {
         Cookies.set("access_token", data.token, { expires: 7 });
       }
-
       if (data.user) {
         setUser(data.user);
       }
-
       await fetchUser();
       router.push("/dashboard");
     } catch (error: unknown) {
@@ -87,16 +77,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // --- LOGOUT ---
   const logout = async () => {
     try {
       await authAPI.logout();
     } catch (error) {
       console.error("AuthContext: Logout API failed:", error);
     } finally {
-      toast.error("Anda Telah Logout", {
-        description: "Anda telah berhasil keluar dari akun Anda.",
-      });
+      toast.info("Anda telah keluar.");
       Cookies.remove("access_token");
       setUser(null);
       router.push("/login");
@@ -104,7 +91,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshUser = async () => {
-    console.log("AuthContext: Refreshing user...");
     await fetchUser();
   };
 

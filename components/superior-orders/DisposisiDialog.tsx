@@ -37,7 +37,6 @@ export function DisposisiDialog({
       const fetchUsers = async () => {
         try {
           const data = await userAPI.getAll();
-          // Filter hanya staff, admin tidak perlu diperintah
           const staffOnly = Array.isArray(data)
             ? data.filter((u) => u.role === "staff")
             : [];
@@ -51,7 +50,6 @@ export function DisposisiDialog({
     }
   }, [open]);
 
-  // Handle Checkbox
   const toggleUser = (userId: string) => {
     setSelectedUserIds((prev) =>
       prev.includes(userId)
@@ -83,7 +81,7 @@ export function DisposisiDialog({
 
       toast.success("Perintah berhasil dikirim ke staff terpilih!");
       setOpen(false);
-      setSelectedUserIds([]); // Reset pilihan
+      setSelectedUserIds([]);
       if (onSuccess) onSuccess();
     } catch (error: unknown) {
       toast.error(
@@ -94,7 +92,6 @@ export function DisposisiDialog({
     }
   };
 
-  // Ambil ID user (handle perbedaan huruf besar/kecil dari backend)
   const getID = (u: User) => u.id || u.ID || "";
 
   return (

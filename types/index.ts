@@ -3,7 +3,9 @@ export type User = {
   id?: string;     
   name: string;
   username: string;
-  role: string;
+  role: 'superadmin' | 'admin' | 'staff'; 
+  photo_url?: string | null;
+  photo_id?: string | null;
   created_at?: string;
   CreatedAt?: string; 
   updated_at?: string;
@@ -57,7 +59,6 @@ export interface DocumentStaff {
   source?: string;
 }
 
-
 export interface SuperiorOrder {
   id: string;
   document_id: string;
@@ -77,7 +78,6 @@ export interface UpdateSuperiorOrderRequest {
   user_ids: string[]; 
 }
 
-
 export type SharedDocument = Document | DocumentStaff;
 
 export interface Notification {
@@ -94,7 +94,6 @@ export interface NotificationsApiResponse {
   unread_count: number;
 }
 
-
 export interface ApiResponse<T> {
     status?: 'success' | 'error';
     message?: string;
@@ -106,28 +105,12 @@ export interface ApiResponse<T> {
     errors?: Record<string, string[]>;
 }
 
-export interface PaginatedResponse<T> {
-  status?: 'success' | 'error';
-  message?: string;
-  data: T[];
-  current_page: number;
-  last_page: number;
-  per_page: number;
-  total: number;
-  from?: number;
-  to?: number;
-}
-
 export interface DocumentsResponse {
   documents: Document[];
   total: number;
   current_page: number;
   last_page: number;
   per_page: number;
-}
-
-export interface DocumentResponse {
-  document: Document;
 }
 
 export interface DocumentStaffApiResponse {

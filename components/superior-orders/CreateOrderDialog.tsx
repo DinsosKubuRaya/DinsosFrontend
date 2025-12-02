@@ -36,9 +36,11 @@ export function CreateOrderDialog({
     if (open) {
       const fetchUsers = async () => {
         try {
-          const allUsers = await userAPI.getAll();
-          const staffOnly = allUsers.filter((u) => u.role === "staff");
-          setUsers(staffOnly);
+          const allUsers = await userAPI.getUsersForFilter();
+          const staffOnly = allUsers.filter(
+            (u) => u.role === "staff" || !u.role
+          );
+          setUsers(staffOnly.length > 0 ? staffOnly : allUsers);
         } catch (error: unknown) {
           toast.error(
             error instanceof Error ? error.message : "Gagal memuat daftar user"
