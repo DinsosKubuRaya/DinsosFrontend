@@ -53,7 +53,7 @@ export default function LoginPage() {
             Sistem Arsip Digital
           </CardTitle>
           <CardDescription className="text-foreground/70">
-            Masuk ke akun Anda untuk mengakses dokumen
+            Masuk ke akun Anda untuk mengakses dokumen test
           </CardDescription>
         </CardHeader>
         <CardContent>
