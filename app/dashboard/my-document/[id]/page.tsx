@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { documentStaffAPI } from "@/lib/api";
+import { documentStaffAPI, getErrorMessage } from "@/lib/api";
 import { DocumentStaff } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,6 +30,7 @@ import {
   User,
   ExternalLink,
   ShieldCheck,
+  Send as SendIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
@@ -65,40 +66,37 @@ export default function DocumentStaffDetailPage() {
     }
   };
 
-  const getFileExtension = (filename: string) => {
-    return filename.split(".").pop()?.toLowerCase() || "";
+  const getFileUrl = () => {
+    if (!documentData) return null;
+    if (documentData.file_url && documentData.file_url.startsWith("http")) {
+      return documentData.file_url;
+    }
+    if (documentData.file_name && documentData.file_name.startsWith("http")) {
+      return documentData.file_name;
+    }
+    return null;
   };
 
   const handlePreview = () => {
-    if (!documentData?.file_name) {
-      toast.error("Link file tidak ditemukan");
+    const url = getFileUrl();
+    if (!url) {
+      toast.error("Link file tidak valid atau rusak.");
       return;
     }
-
-    const ext = getFileExtension(documentData.file_name);
-    const isOfficeDoc = [
-      "pdf",
-      "doc",
-      "docx",
-      "xls",
-      "xlsx",
-      "ppt",
-      "pptx",
-    ].includes(ext);
-
-    if (isOfficeDoc) {
-      const googleViewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(
-        documentData.file_name
-      )}&embedded=true`;
-      window.open(googleViewerUrl, "_blank");
-    } else {
-      window.open(documentData.file_name, "_blank");
-    }
+    window.open(url, "_blank");
   };
 
-  const handleDirectDownload = () => {
-    if (documentData?.file_name) {
-      window.open(documentData.file_name, "_blank");
+  const handleDirectDownload = async () => {
+    try {
+      await documentStaffAPI.download(id);
+      toast.success("Sedang mengunduh...");
+    } catch (e) {
+      const url = getFileUrl();
+      if (url) {
+        window.open(url, "_blank");
+      } else {
+        toast.error("Gagal mengunduh file.");
+      }
     }
   };
 
@@ -148,13 +146,13 @@ export default function DocumentStaffDetailPage() {
     );
   }
 
-  // --- LOGIKA IZIN AKSES  ---
+  // --- LOGIKA IZIN AKSES ---
   const currentUserId = user ? getUserId(user) : null;
   const docUserId = documentData.user_id ? String(documentData.user_id) : "";
   const isOwner = currentUserId && docUserId === String(currentUserId);
   const isAdminDoc = documentData.source === "document";
-  const canEdit = isAdmin || (isOwner && !isAdminDoc);
-  const canDelete = isAdmin || (isOwner && !isAdminDoc);
+  const canEdit = !isAdminDoc && (isAdmin || isOwner);
+  const canDelete = !isAdminDoc && (isAdmin || isOwner);
 
   return (
     <div className="space-y-6 max-w-4xl p-4 md:p-6 mx-auto">
@@ -174,7 +172,7 @@ export default function DocumentStaffDetailPage() {
               Detail Dokumen
             </h1>
             <p className="text-muted-foreground text-sm mt-1">
-              Detail informasi dokumen saya
+              Informasi lengkap arsip dokumen
             </p>
           </div>
         </div>
@@ -191,20 +189,22 @@ export default function DocumentStaffDetailPage() {
             </Button>
           )}
 
+          {/* Tombol Preview yang Diperbaiki */}
           <Button
             variant="default"
             onClick={handlePreview}
-            disabled={loading || !documentData.file_name}
+            disabled={loading}
             className="bg-blue-600 hover:bg-blue-700"
           >
             <Eye className="mr-2 h-4 w-4" />
             Preview
           </Button>
 
+          {/* Tombol Download yang Diperbaiki */}
           <Button
             variant="outline"
             onClick={handleDirectDownload}
-            disabled={loading || !documentData.file_name}
+            disabled={loading}
           >
             <Download className="mr-2 h-4 w-4" />
             Download
@@ -224,17 +224,17 @@ export default function DocumentStaffDetailPage() {
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
+                  <AlertDialogTitle>Hapus Dokumen?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Tindakan ini tidak dapat dibatalkan. Dokumen ini akan
-                    dihapus secara permanen dari sistem.
+                    Dokumen ini akan dihapus permanen dan tidak dapat
+                    dikembalikan.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Batal</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={executeDelete}
-                    className="bg-red-600 hover:bg-red-700 text-white focus:ring-red-600"
+                    className="bg-red-600 hover:bg-red-700 text-white"
                   >
                     Ya, Hapus
                   </AlertDialogAction>
@@ -245,34 +245,66 @@ export default function DocumentStaffDetailPage() {
         </div>
       </div>
 
-      {/* CONTENT CARD */}
+      {/* INFO CARD */}
       <Card>
         <CardHeader>
           <div className="flex items-start justify-between">
             <div className="flex-1 pr-4">
               <div className="flex items-center gap-2 mb-2">
-                {isAdminDoc && (
+                {isAdminDoc ? (
                   <Badge className="bg-blue-600 hover:bg-blue-700 flex items-center gap-1">
                     <ShieldCheck className="h-3 w-3" /> Dari Admin
                   </Badge>
+                ) : (
+                  <Badge
+                    variant="outline"
+                    className="bg-slate-100 text-slate-700 flex items-center gap-1"
+                  >
+                    <User className="h-3 w-3" /> Dokumen Pribadi
+                  </Badge>
                 )}
-                {/* [MODIFIED] Bagian Badge Tipe Surat dihapus agar tidak tampil */}
+
+                {/* Tampilkan Tipe Surat HANYA jika ada (misal dokumen Admin) */}
+                {documentData.letter_type && (
+                  <Badge
+                    variant={
+                      documentData.letter_type === "masuk"
+                        ? "default"
+                        : "secondary"
+                    }
+                    className="capitalize"
+                  >
+                    {documentData.letter_type === "masuk"
+                      ? "Surat Masuk"
+                      : "Surat Keluar"}
+                  </Badge>
+                )}
               </div>
-              <CardTitle className="text-xl md:text-2xl leading-tight">
+              <CardTitle className="text-xl md:text-2xl leading-tight text-foreground">
                 {documentData.subject || "Tanpa Subjek"}
               </CardTitle>
-              <p className="text-muted-foreground text-sm mt-2 font-mono">
-                ID: {documentData.id}
-              </p>
             </div>
           </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Kiri */}
+              {/* KOLOM KIRI */}
               <div className="space-y-4">
-                {/* [MODIFIED] Bagian Info Pengirim dihapus */}
+                {/* Pengirim: Hanya tampil jika data ada (Admin Doc) */}
+                {documentData.sender && (
+                  <div className="flex items-start gap-3">
+                    <SendIcon className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Pengirim
+                      </p>
+                      <p className="text-base font-semibold">
+                        {documentData.sender}
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex items-start gap-3">
                   <FileText className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
@@ -290,35 +322,37 @@ export default function DocumentStaffDetailPage() {
                   <ExternalLink className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-muted-foreground">
-                      Link File
+                      URL File
                     </p>
-                    {documentData.file_name ? (
+                    {getFileUrl() ? (
                       <a
-                        href={documentData.file_name}
+                        href={getFileUrl()!}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-primary hover:underline break-all"
+                        className="text-sm text-blue-600 hover:underline break-all"
                       >
                         Buka di Tab Baru
                       </a>
                     ) : (
-                      <p className="text-sm text-muted-foreground">-</p>
+                      <p className="text-sm text-red-500 italic">
+                        File tidak tersedia
+                      </p>
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* Kanan */}
+              {/* KOLOM KANAN */}
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
                   <User className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-muted-foreground">
-                      Diupload Oleh
+                      Pemilik Dokumen
                     </p>
-                    <p className="text-base">
+                    <p className="text-base font-medium">
                       {isAdminDoc
-                        ? "Admin"
+                        ? "Admin Dinas"
                         : documentData.user?.name || "Saya Sendiri"}
                     </p>
                   </div>
@@ -335,29 +369,18 @@ export default function DocumentStaffDetailPage() {
                     </p>
                   </div>
                 </div>
-
-                <div className="flex items-start gap-3">
-                  <Calendar className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Terakhir Diupdate
-                    </p>
-                    <p className="text-base">
-                      {formatDate(documentData.updated_at)}
-                    </p>
-                  </div>
-                </div>
               </div>
             </div>
 
+            {/* Subject Full */}
             {documentData.subject && (
               <>
                 <Separator />
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-2">
-                    Subjek / Perihal Lengkap
+                    Keterangan Lengkap
                   </p>
-                  <div className="p-4 bg-muted/50 rounded-lg text-base whitespace-pre-wrap border">
+                  <div className="p-4 bg-muted/30 rounded-lg text-base whitespace-pre-wrap border border-muted">
                     {documentData.subject}
                   </div>
                 </div>
