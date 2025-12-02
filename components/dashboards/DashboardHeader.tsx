@@ -10,14 +10,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Menu,
-  LogOut,
-  User as UserIcon,
-  Settings,
-  ShieldAlert,
-} from "lucide-react";
+import { Menu, LogOut, User as UserIcon, Settings } from "lucide-react";
+import Link from "next/link";
 import { User } from "@/types";
+import Image from "next/image";
 import { NotificationBell } from "./NotificationBell";
 
 interface DashboardHeaderProps {
@@ -66,10 +62,8 @@ export function DashboardHeader({
         </Button>
 
         {/* Logo / Title */}
-        <div className="flex items-center gap-2 font-bold text-lg md:text-xl text-primary">
-          <ShieldAlert className="h-6 w-6" />
-          <span className="hidden md:inline-block">E-Arsip Dinsos</span>
-          <span className="md:hidden">E-Arsip</span>
+        <div className="flex items-center gap-2 font-bold text-lg md:text-xl cursor-pointer">
+          <Image src="/logodinsos.png" alt="Logo" width={150} height={150} />
         </div>
 
         {/* Right Section */}

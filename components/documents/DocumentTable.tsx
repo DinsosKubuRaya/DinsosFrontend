@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Table,
   TableBody,
@@ -6,18 +8,33 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import {
+  MoreHorizontal,
+  FileText,
+  Download,
+  Trash,
+  Eye,
+  Edit,
+} from "lucide-react";
+import { Document, DocumentStaff } from "@/types";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Download, Trash2, ShieldCheck, User } from "lucide-react";
-import { Document } from "@/types";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface DocumentTableProps {
-  documents: Document[];
+  documents: (Document | DocumentStaff)[];
   isAdmin: boolean;
   formatDate: (date: string) => string;
-  onDownload: (doc: Document) => void;
-  onDeleteClick?: (doc: Document) => void;
+  onDownload: (doc: Document | DocumentStaff) => void;
+  onDeleteClick?: (doc: Document | DocumentStaff) => void;
   isMyDocumentPage?: boolean;
   showSourceColumn?: boolean;
 }
@@ -31,135 +48,128 @@ export function DocumentTable({
   isMyDocumentPage = false,
   showSourceColumn = false,
 }: DocumentTableProps) {
-  const getLetterTypeBadge = (type: string) => {
-    if (!type) return <span className="text-muted-foreground">-</span>;
+  const router = useRouter();
 
-    return type === "keluar" ? (
-      <Badge
-        variant="secondary"
-        className="bg-orange-100 text-orange-700 hover:bg-orange-200 border-orange-200"
-      >
-        Keluar
-      </Badge>
-    ) : (
-      <Badge variant="default" className="bg-green-600 hover:bg-green-700">
-        Masuk
-      </Badge>
-    );
+  const getBasePath = (doc: Document | DocumentStaff) => {
+    if (isAdmin) {
+      return `/dashboard/documents`;
+    }
+    return `/dashboard/my-document`;
   };
 
   return (
-    <div className="rounded-md border bg-card overflow-hidden">
+    <div className="rounded-md border bg-background">
       <Table>
-        <TableHeader className="bg-muted/50">
+        <TableHeader>
           <TableRow>
-            <TableHead className="w-[50px] text-center">No</TableHead>
-            <TableHead>Perihal / Subjek</TableHead>
-
-            {/* TIPE SURAT & PENGIRIM: HANYA ADMIN (Karena tabel Staff tidak punya kolom ini) */}
-            {isAdmin && <TableHead className="w-[120px]">Tipe Surat</TableHead>}
-            {isAdmin && <TableHead>Pengirim</TableHead>}
-
-            {showSourceColumn && (
-              <TableHead className="w-[100px]">Sumber</TableHead>
-            )}
-
-            <TableHead className="w-[150px]">Tanggal</TableHead>
+            <TableHead>Pengirim / Judul</TableHead>
+            <TableHead>Tipe</TableHead>
+            <TableHead>Tanggal</TableHead>
+            {showSourceColumn && <TableHead>Sumber</TableHead>}
             <TableHead className="text-right">Aksi</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {documents.map((doc, index) => (
-            <TableRow key={doc.id} className="hover:bg-muted/5">
-              <TableCell className="text-center text-muted-foreground">
-                {index + 1}
-              </TableCell>
+          {documents.map((doc) => (
+            <TableRow key={doc.id}>
               <TableCell className="font-medium">
-                <div className="flex flex-col max-w-[300px]">
-                  <span className="truncate font-semibold text-foreground">
-                    {doc.subject}
-                  </span>
-                  <span className="text-xs text-muted-foreground truncate">
-                    {doc.file_name?.split("/").pop()}
-                  </span>
+                <div className="flex flex-col">
+                  <span className="font-semibold">{doc.sender}</span>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <FileText className="h-3 w-3" />
+                    <span
+                      className="truncate max-w-[200px]"
+                      title={doc.subject}
+                    >
+                      {doc.subject}
+                    </span>
+                  </div>
                 </div>
               </TableCell>
-
-              {/* LOGIKA KOLOM KHUSUS ADMIN */}
-              {isAdmin && (
-                <>
-                  <TableCell>
-                    {/* Jika dokumen staff tidak punya letter_type, tampilkan - */}
-                    {doc.letter_type
-                      ? getLetterTypeBadge(doc.letter_type)
-                      : "-"}
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">{doc.sender || "-"}</div>
-                  </TableCell>
-                </>
-              )}
+              <TableCell>
+                <Badge
+                  variant={
+                    doc.letter_type === "masuk" ? "default" : "secondary"
+                  }
+                >
+                  {doc.letter_type === "masuk" ? "Masuk" : "Keluar"}
+                </Badge>
+              </TableCell>
+              <TableCell>{formatDate(doc.created_at)}</TableCell>
 
               {showSourceColumn && (
                 <TableCell>
-                  {doc.source === "document" ? (
+                  {doc.source === "staff" ? (
                     <Badge
                       variant="outline"
-                      className="text-[10px] gap-1 bg-blue-50 text-blue-700 border-blue-200"
+                      className="text-blue-600 border-blue-200 bg-blue-50"
                     >
-                      <ShieldCheck className="h-3 w-3" /> Admin
+                      Staff
                     </Badge>
                   ) : (
                     <Badge
                       variant="outline"
-                      className="text-[10px] gap-1 bg-slate-50 text-slate-700"
+                      className="text-amber-600 border-amber-200 bg-amber-50"
                     >
-                      <User className="h-3 w-3" /> Staff
+                      Dinas
                     </Badge>
                   )}
                 </TableCell>
               )}
 
-              <TableCell className="text-sm text-muted-foreground">
-                {formatDate(doc.created_at)}
-              </TableCell>
-
               <TableCell className="text-right">
-                <div className="flex justify-end gap-2">
-                  <Link
-                    href={`/dashboard/${
-                      isMyDocumentPage ? "my-document" : "documents"
-                    }/${doc.id}`}
-                  >
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                    >
-                      <Eye className="h-4 w-4" />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                      <span className="sr-only">Open menu</span>
+                      <MoreHorizontal className="h-4 w-4" />
                     </Button>
-                  </Link>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Aksi</DropdownMenuLabel>
 
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-slate-600 hover:text-slate-700"
-                    onClick={() => onDownload(doc)}
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
-
-                  {(isAdmin || isMyDocumentPage) && onDeleteClick && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                      onClick={() => onDeleteClick(doc)}
+                    <DropdownMenuItem
+                      onClick={() => {
+                        const basePath = getBasePath(doc);
+                        const sourceParam = doc.source
+                          ? `?source=${doc.source}`
+                          : "";
+                        router.push(`${basePath}/${doc.id}${sourceParam}`);
+                      }}
                     >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
+                      <Eye className="mr-2 h-4 w-4" /> Detail
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem onClick={() => onDownload(doc)}>
+                      <Download className="mr-2 h-4 w-4" /> Unduh
+                    </DropdownMenuItem>
+
+                    {(isAdmin || isMyDocumentPage) && (
+                      <>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            const basePath = getBasePath(doc);
+                            const sourceParam = doc.source
+                              ? `?source=${doc.source}`
+                              : "";
+                            router.push(
+                              `${basePath}/${doc.id}/edit${sourceParam}`
+                            );
+                          }}
+                        >
+                          <Edit className="mr-2 h-4 w-4" /> Edit
+                        </DropdownMenuItem>
+
+                        <DropdownMenuItem
+                          className="text-red-600 focus:text-red-600"
+                          onClick={() => onDeleteClick && onDeleteClick(doc)}
+                        >
+                          <Trash className="mr-2 h-4 w-4" /> Hapus
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </TableCell>
             </TableRow>
           ))}

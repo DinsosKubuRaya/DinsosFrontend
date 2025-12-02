@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { documentStaffAPI } from "@/lib/api";
-import { Document } from "@/types";
+import { documentAPI, documentStaffAPI } from "@/lib/api"; // Import documentAPI
+import { Document, DocumentStaff } from "@/types";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,16 +16,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Upload, FileText, Filter } from "lucide-react";
+import { Upload, FileText, Filter, Archive, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { DocumentTable } from "@/components/documents/DocumentTable";
 import { DocumentListMobile } from "@/components/documents/DocumentListMobile";
 import { DocumentFilter } from "@/components/documents/DocumentFilter";
 import { getUserId } from "@/lib/userHelpers";
+import { Badge } from "@/components/ui/badge";
 
 export default function DocumentsPage() {
   const { user, isAdmin } = useAuth();
+
+  const [activeTab, setActiveTab] = useState<"official" | "staff">("official");
+
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -39,11 +43,15 @@ export default function DocumentsPage() {
   }, [searchTerm]);
 
   useEffect(() => {
+    setActiveTab("official");
+  }, [user]);
+
+  useEffect(() => {
     if (user || isAdmin) {
       fetchDocuments();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, user, isAdmin]);
+  }, [debouncedSearch, user, isAdmin, activeTab]);
 
   const fetchDocuments = async () => {
     setLoading(true);
@@ -57,17 +65,19 @@ export default function DocumentsPage() {
       let allDocs: Document[] = [];
 
       if (isAdmin) {
-        try {
+        // === LOGIKA ADMIN/SUPERADMIN ===
+        if (activeTab === "official") {
+          const response = await documentAPI.getAll(params);
+          allDocs = (response.documents || []).map((doc) => ({
+            ...doc,
+            source: "document",
+          }));
+        } else {
           const staffResponse = await documentStaffAPI.getAll(params);
-          const staffDocs = (staffResponse.documents || []).map(
-            (doc: Document) => ({
-              ...doc,
-              source: "staff",
-            })
-          );
-          allDocs = [...staffDocs];
-        } catch (error) {
-          console.error("Error fetching admin documents:", error);
+          allDocs = (staffResponse.documents || []).map((doc: unknown) => ({
+            ...(doc as Document),
+            source: "staff",
+          }));
         }
       } else {
         if (!user) {
@@ -84,7 +94,10 @@ export default function DocumentsPage() {
           return docUserId === currentUserId;
         });
 
-        allDocs = docs;
+        allDocs = docs.map((doc: unknown) => ({
+          ...(doc as Document),
+          source: "staff",
+        }));
       }
 
       setDocuments(allDocs);
@@ -100,7 +113,12 @@ export default function DocumentsPage() {
   const executeDelete = async () => {
     if (!docToDelete) return;
     try {
-      await documentStaffAPI.delete(docToDelete.id);
+      if (docToDelete.source === "staff") {
+        await documentStaffAPI.delete(docToDelete.id);
+      } else {
+        await documentAPI.delete(docToDelete.id);
+      }
+
       toast.success("Dokumen berhasil dihapus");
       fetchDocuments();
     } catch (error) {
@@ -113,7 +131,11 @@ export default function DocumentsPage() {
 
   const handleDownload = async (doc: Document) => {
     try {
-      await documentStaffAPI.download(doc.id);
+      if (doc.source === "staff") {
+        await documentStaffAPI.download(doc.id);
+      } else {
+        await documentAPI.download(doc.id);
+      }
       toast.success("Membuka file...");
     } catch (error) {
       console.error("Download error:", error);
@@ -138,22 +160,59 @@ export default function DocumentsPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            {isAdmin ? "Monitoring Arsip Staff" : "Arsip Dokumen"}
+            {isAdmin
+              ? activeTab === "official"
+                ? "Arsip Dinas"
+                : "Monitoring Staff"
+              : "Arsip Dokumen"}
           </h1>
           <p className="text-muted-foreground mt-2">
-            Kelola dokumen surat staff
+            {isAdmin
+              ? activeTab === "official"
+                ? "Kelola surat masuk dan keluar"
+                : "Pantau dokumen yang diupload staff"
+              : "Kelola dokumen surat staff"}
           </p>
         </div>
 
-        {isAdmin && (
+        {/* Tombol Upload hanya muncul untuk Admin di tab Official, atau untuk Staff */}
+        {isAdmin && activeTab === "official" && (
           <Link href="/dashboard/documents/upload">
             <Button>
               <Upload className="mr-2 h-4 w-4" />
-              Upload Dokumen
+              Upload Surat Dinas
             </Button>
           </Link>
         )}
       </div>
+
+      {/* --- TAB NAVIGASI ADMIN/SUPERADMIN --- */}
+      {isAdmin && (
+        <div className="flex p-1 bg-muted/50 rounded-lg w-full sm:w-fit border mb-4">
+          <button
+            onClick={() => setActiveTab("official")}
+            className={`flex-1 sm:flex-none px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center justify-center gap-2 ${
+              activeTab === "official"
+                ? "bg-background text-foreground shadow-sm ring-1 ring-black/5"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+            }`}
+          >
+            <Archive className="h-4 w-4" />
+            Arsip Dinas
+          </button>
+          <button
+            onClick={() => setActiveTab("staff")}
+            className={`flex-1 sm:flex-none px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center justify-center gap-2 ${
+              activeTab === "staff"
+                ? "bg-background text-blue-600 shadow-sm ring-1 ring-black/5"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+            }`}
+          >
+            <Users className="h-4 w-4" />
+            Monitoring Staff
+          </button>
+        </div>
+      )}
 
       <Card>
         <CardHeader>
@@ -181,9 +240,11 @@ export default function DocumentsPage() {
               <FileText className="mx-auto h-12 w-12 mb-4 opacity-50" />
               <p>Tidak ada dokumen ditemukan</p>
               <p className="text-sm mt-2">
-                {isAdmin
+                {isAdmin && activeTab === "official"
+                  ? "Klik 'Upload Surat Dinas' untuk mulai pengarsipan"
+                  : isAdmin && activeTab === "staff"
                   ? "Belum ada staff yang mengupload dokumen"
-                  : "Klik tombol 'Upload Dokumen' untuk menambah"}
+                  : "Data kosong"}
               </p>
             </div>
           ) : (
@@ -195,6 +256,7 @@ export default function DocumentsPage() {
                 onDownload={handleDownload}
                 onDeleteClick={setDocToDelete}
                 isMyDocumentPage={!isAdmin}
+                showSourceColumn={activeTab === "staff"}
               />
 
               <DocumentListMobile
@@ -221,7 +283,10 @@ export default function DocumentsPage() {
             <AlertDialogTitle>Anda yakin ingin menghapus?</AlertDialogTitle>
             <AlertDialogDescription>
               Tindakan ini tidak dapat dibatalkan. Dokumen &quot;
-              {docToDelete?.subject}&quot; akan dihapus secara permanen.
+              {docToDelete?.subject}&quot; akan dihapus secara permanen dari
+              {docToDelete?.source === "staff"
+                ? " arsip staff."
+                : " arsip dinas."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

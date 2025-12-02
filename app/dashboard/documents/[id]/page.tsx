@@ -1,250 +1,154 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { documentAPI, getErrorMessage } from "@/lib/api";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
+import { documentAPI, documentStaffAPI } from "@/lib/api";
+import { Document, DocumentStaff } from "@/types";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Save, Loader2, Download, ShieldAlert } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { useAuth } from "@/context/AuthContext";
+import { ArrowLeft, Calendar, FileText, User, Download } from "lucide-react";
 
-interface DocumentData {
-  id: string;
-  sender: string;
-  subject: string;
-  letter_type: "masuk" | "keluar";
-  file_url?: string;
-}
-
-export default function AdminDocumentDetail() {
-  const params = useParams();
+export default function DocumentDetailPage() {
   const router = useRouter();
-  const id = params?.id as string;
-  const { isAdmin } = useAuth();
+  const params = useParams();
+  const searchParams = useSearchParams();
+  const id = params.id as string;
+  const source = searchParams.get("source");
 
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [file, setFile] = useState<File | null>(null);
-
-  const [formData, setFormData] = useState<DocumentData>({
-    id: "",
-    sender: "",
-    subject: "",
-    letter_type: "masuk",
-  });
+  const [document, setDocument] = useState<Document | DocumentStaff | null>(
+    null
+  );
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isAdmin) {
-      toast.error("Anda tidak memiliki akses ke halaman ini");
-      router.push("/dashboard");
-    }
-  }, [isAdmin, router]);
-
-  useEffect(() => {
-    const fetchData = async () => {
+    const fetchDocument = async () => {
       try {
-        setLoading(true);
-        const doc = await documentAPI.getById(id);
-
-        if (doc) {
-          setFormData({
-            id: doc.id,
-            sender: doc.sender || "",
-            subject: doc.subject || "",
-            letter_type: (doc.letter_type as "masuk" | "keluar") || "masuk",
-            file_url: doc.file_url,
-          });
+        let data;
+        if (source === "staff") {
+          const response = await documentStaffAPI.getById(id);
+          data = response;
+        } else {
+          const response = await documentAPI.getById(id);
+          data = response;
         }
+        setDocument(data);
       } catch (error) {
-        console.error("Gagal mengambil data:", error);
-        toast.error("Gagal memuat data dokumen");
-        router.back();
+        console.error("Error fetching document:", error);
+        toast.error("Gagal memuat detail dokumen");
+        router.push("/dashboard/documents");
       } finally {
         setLoading(false);
       }
     };
 
-    if (id && isAdmin) fetchData();
-  }, [id, router, isAdmin]);
+    if (id) {
+      fetchDocument();
+    }
+  }, [id, router, source]);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { id, value } = e.target;
-    setFormData((prev) => ({ ...prev, [id]: value }));
-  };
-
-  const handleSelectChange = (val: "masuk" | "keluar") => {
-    setFormData((prev) => ({ ...prev, letter_type: val }));
-  };
-
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-
+  const handleDownload = async () => {
+    if (!document) return;
     try {
-      await documentAPI.update(id, {
-        sender: formData.sender,
-        subject: formData.subject,
-        letter_type: formData.letter_type,
-        file: file,
-      });
-
-      toast.success("Dokumen berhasil diperbarui!");
-      router.push(`/dashboard/documents`);
-    } catch (error: unknown) {
-      console.error("Update error:", error);
-      toast.error("Gagal memperbarui dokumen", {
-        description: getErrorMessage(error),
-      });
-    } finally {
-      setSaving(false);
+      if (source === "staff") {
+        await documentStaffAPI.download(document.id);
+      } else {
+        await documentAPI.download(document.id);
+      }
+      toast.success("Mulai mengunduh...");
+    } catch (error) {
+      console.error("Download error:", error);
+      toast.error("Gagal mengunduh file");
     }
   };
 
-  if (!isAdmin) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[400px] gap-4">
-        <ShieldAlert className="h-16 w-16 text-destructive" />
-        <h2 className="text-2xl font-bold">Akses Ditolak</h2>
-        <p className="text-muted-foreground">Halaman ini hanya untuk admin</p>
-        <Button onClick={() => router.push("/dashboard")}>
-          Kembali ke Dashboard
-        </Button>
-      </div>
-    );
-  }
-
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex items-center justify-center h-[50vh]">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
+  if (!document) return null;
+
   return (
-    <div className="container max-w-3xl py-8 px-4 md:px-6 mx-auto">
+    <div className="max-w-3xl mx-auto space-y-6 p-4">
       <Button variant="ghost" onClick={() => router.back()} className="mb-4">
-        <ArrowLeft className="mr-2 h-4 w-4" /> Kembali
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Kembali
       </Button>
 
       <Card>
         <CardHeader>
-          <CardTitle>Edit Cepat Dokumen</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleUpdate} className="space-y-4">
-            <div className="p-3 bg-muted/50 rounded-md border flex justify-between items-center mb-4">
-              <div className="text-sm">
-                <span className="text-muted-foreground block">
-                  File Saat Ini:
-                </span>
-                <span className="font-medium truncate max-w-[200px] block">
-                  {formData.file_url?.split("/").pop() || "Tidak ada nama"}
-                </span>
-              </div>
-              {formData.file_url && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.open(formData.file_url, "_blank")}
-                >
-                  <Download className="mr-2 h-3 w-3" /> Cek
-                </Button>
-              )}
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="sender">Pengirim</Label>
-                <Input
-                  id="sender"
-                  value={formData.sender}
-                  onChange={handleChange}
-                  placeholder="Nama pengirim surat"
-                  required
-                  disabled={saving}
-                  className="border-black/40"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Jenis Surat</Label>
-                <Select
-                  value={formData.letter_type}
-                  onValueChange={handleSelectChange}
-                  disabled={saving}
-                >
-                  <SelectTrigger className="border-2 border-black/40 ">
-                    <SelectValue placeholder="Pilih jenis" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="masuk">Surat Masuk</SelectItem>
-                    <SelectItem value="keluar">Surat Keluar</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="subject">Judul / Subjek</Label>
-              <Textarea
-                id="subject"
-                value={formData.subject}
-                onChange={handleChange}
-                rows={3}
-                required
-                disabled={saving}
-                className="border-black/40"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="file">Ganti File (Opsional)</Label>
-              <Input
-                id="file"
-                type="file"
-                onChange={(e) => {
-                  if (e.target.files?.[0]) setFile(e.target.files[0]);
-                }}
-                className="cursor-pointer border-black/10"
-                disabled={saving}
-                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp,.xls,.xlsx,.ppt,.pptx"
-              />
-              <p className="text-xs text-muted-foreground">
-                Biarkan kosong jika tidak ingin mengganti file.
+          <div className="flex flex-col md:flex-row justify-between md:items-start gap-4">
+            <div>
+              <CardTitle className="text-2xl font-bold wrap-break-word">
+                {document.subject}
+              </CardTitle>
+              <p className="text-muted-foreground mt-1">
+                Pengirim:{" "}
+                <span className="font-semibold">{document.sender}</span>
               </p>
             </div>
 
-            <div className="pt-4 flex justify-end">
-              <Button type="submit" disabled={saving} className="min-w-[150px]">
-                {saving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Menyimpan...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Simpan Perubahan
-                  </>
-                )}
+            <Badge
+              variant={
+                document.letter_type === "masuk" ? "default" : "secondary"
+              }
+              className="capitalize w-fit"
+            >
+              Surat {document.letter_type}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-1">
+              <div className="flex items-center text-sm text-muted-foreground">
+                <Calendar className="mr-2 h-4 w-4" />
+                Tanggal Upload
+              </div>
+              <p className="font-medium">
+                {new Date(document.created_at).toLocaleDateString("id-ID", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </p>
+            </div>
+
+            {/* Tampilkan Info Uploader jika ini dokumen staff */}
+            {source === "staff" && (
+              <div className="space-y-1">
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <User className="mr-2 h-4 w-4" />
+                  ID Pengunggah
+                </div>
+                <p className="font-medium">
+                  {(document as DocumentStaff).user_id}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="pt-4 border-t">
+            <h3 className="text-sm font-medium mb-2 flex items-center">
+              <FileText className="mr-2 h-4 w-4" />
+              File Lampiran
+            </h3>
+            <div className="flex items-center justify-between p-3 bg-muted rounded-md">
+              <span className="text-sm truncate max-w-[200px] sm:max-w-md">
+                {document.file_name}
+              </span>
+              <Button size="sm" onClick={handleDownload}>
+                <Download className="mr-2 h-4 w-4" />
+                Unduh
               </Button>
             </div>
-          </form>
+          </div>
         </CardContent>
       </Card>
     </div>

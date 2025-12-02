@@ -17,8 +17,8 @@ type RegisterData = {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  isAdmin: boolean; // True jika admin ATAU superadmin (untuk akses halaman admin)
-  isSuperAdmin: boolean; // True HANYA jika superadmin (untuk akses hapus user)
+  isAdmin: boolean;
+  isSuperAdmin: boolean;
   login: (username: string, password: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;

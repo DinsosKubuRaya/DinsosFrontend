@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Mail, Send, Activity, User } from "lucide-react";
-import { documentAPI, documentStaffAPI } from "@/lib/api"; // Import documentAPI (Admin)
+import { FileText, Mail, Send, Activity, User, Users } from "lucide-react";
+import { documentAPI, documentStaffAPI, userAPI } from "@/lib/api";
 import { Document, DocumentStaff } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import { getUserId } from "@/lib/userHelpers";
@@ -13,17 +13,16 @@ import { DocumentTable } from "@/components/documents/DocumentTable";
 import { DocumentListMobile } from "@/components/documents/DocumentListMobile";
 
 export default function DashboardPage() {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isSuperAdmin } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
-    total: 0,
+    totalUsers: 0,
+    totalDocs: 0,
     myDocs: 0,
-    adminDocs: 0,
     masuk: 0,
     keluar: 0,
   });
 
-  // State menampung union type Document atau DocumentStaff
   const [recentDocuments, setRecentDocuments] = useState<
     (Document | DocumentStaff)[]
   >([]);
@@ -39,14 +38,24 @@ export default function DashboardPage() {
     setLoading(true);
     try {
       if (isAdmin) {
-        // === ADMIN/SUPERADMIN: Ambil Arsip Utama ===
-        const response = await documentAPI.getAll();
-        const docs = response.documents || [];
+        // === ADMIN/SUPERADMIN ===
+        const docResponse = await documentAPI.getAll();
+        const docs = docResponse.documents || [];
+
+        let userCount = 0;
+        if (isSuperAdmin) {
+          try {
+            const users = await userAPI.getAll();
+            userCount = Array.isArray(users) ? users.length : 0;
+          } catch (err) {
+            console.error("Gagal ambil data user", err);
+          }
+        }
 
         setStats({
-          total: docs.length,
+          totalUsers: userCount,
+          totalDocs: docs.length,
           myDocs: 0,
-          adminDocs: 0,
           masuk: docs.filter((d) => d.letter_type === "masuk").length,
           keluar: docs.filter((d) => d.letter_type === "keluar").length,
         });
@@ -56,28 +65,26 @@ export default function DashboardPage() {
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
 
-        // HAPUS ANY: Mapping type-safe
         const mappedDocs: Document[] = sortedDocs.slice(0, 5).map((d) => ({
           ...d,
           source: "document",
         }));
         setRecentDocuments(mappedDocs);
       } else {
-        // === STAFF: Ambil Dokumen Pribadi ===
+        // === STAFF ===
         const response = await documentStaffAPI.getAll();
         let docs = response.documents || [];
         const currentUserId = user ? String(getUserId(user)) : "";
 
-        // Filter hanya milik sendiri
         docs = docs.filter((doc) => {
           const docUserId = doc.user_id ? String(doc.user_id) : "";
           return docUserId === currentUserId;
         });
 
         setStats({
-          total: docs.length,
+          totalUsers: 0,
+          totalDocs: 0,
           myDocs: docs.length,
-          adminDocs: 0,
           masuk: 0,
           keluar: 0,
         });
@@ -87,7 +94,6 @@ export default function DashboardPage() {
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
 
-        // HAPUS ANY: Mapping type-safe ke DocumentStaff
         const mappedDocs: DocumentStaff[] = sortedDocs.slice(0, 5).map((d) => ({
           ...d,
           source: "document_staff",
@@ -113,7 +119,6 @@ export default function DashboardPage() {
     }
   };
 
-  // Gunakan type union untuk parameter doc
   const handleDownload = async (doc: Document | DocumentStaff) => {
     try {
       if (doc.source === "document") {
@@ -147,18 +152,33 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
+        {/* WIDGET SUPER ADMIN: Total User */}
+        {isSuperAdmin && (
+          <Card>
+            <CardHeader className="flex flex-row justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Total User</CardTitle>
+              <Users className="h-4 w-4 text-purple-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalUsers}</div>
+              <p className="text-xs text-muted-foreground">
+                Pengguna terdaftar
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         {isAdmin ? (
-          // WIDGET ADMIN (Mengambil data Arsip Resmi)
           <>
             <Card>
               <CardHeader className="flex flex-row justify-between pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Total Arsip
+                  Total Arsip Dinas
                 </CardTitle>
                 <FileText className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.total}</div>
+                <div className="text-2xl font-bold">{stats.totalDocs}</div>
                 <p className="text-xs text-muted-foreground">
                   Dokumen dinas tersimpan
                 </p>
@@ -188,7 +208,6 @@ export default function DashboardPage() {
             </Card>
           </>
         ) : (
-          // WIDGET STAFF
           <>
             <Card>
               <CardHeader className="flex flex-row justify-between pb-2">
@@ -224,7 +243,6 @@ export default function DashboardPage() {
         <CardContent className="p-0">
           {recentDocuments.length > 0 ? (
             <>
-              {/* HAPUS ANY: Casting aman ke Document[] karena struktur DocumentStaff kompatibel */}
               <DocumentTable
                 documents={recentDocuments as Document[]}
                 isAdmin={isAdmin}
