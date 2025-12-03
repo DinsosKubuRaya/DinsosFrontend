@@ -7,20 +7,12 @@ import { User } from "@/types";
 import Cookies from "js-cookie";
 import { toast } from "sonner";
 
-type RegisterData = {
-  name: string;
-  username: string;
-  password: string;
-  password_confirmation: string;
-};
-
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   isAdmin: boolean;
   isSuperAdmin: boolean;
   login: (username: string, password: string) => Promise<void>;
-  register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -55,11 +47,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
-
-  const register = async (data: RegisterData) => {
-    await authAPI.register(data);
-    router.push("/login");
   };
 
   const login = async (username: string, password: string) => {
@@ -104,7 +91,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAdmin,
         isSuperAdmin,
         login,
-        register,
         logout,
         refreshUser,
       }}

@@ -1,39 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useEffect, useState, use } from "react";
+import { useRouter } from "next/navigation";
 import { documentStaffAPI, getErrorMessage } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Loader2, FileText, Download } from "lucide-react";
+import { ArrowLeft, Save, Loader2, FileText, Eye } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export default function EditMyDocumentPage() {
+export default function EditMyDocumentPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = use(params);
   const router = useRouter();
-  const params = useParams();
-  const id = params?.id as string;
 
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [file, setFile] = useState<File | null>(null);
+
   const [formData, setFormData] = useState<{
-    sender: string;
     subject: string;
-    letter_type: "masuk" | "keluar";
     file_url?: string;
     file_name?: string;
   }>({
-    sender: "",
     subject: "",
-    letter_type: "masuk",
     file_url: "",
     file_name: "",
   });
@@ -43,12 +37,9 @@ export default function EditMyDocumentPage() {
       try {
         setFetching(true);
         const data = await documentStaffAPI.getById(id);
-
         if (data) {
           setFormData({
-            sender: data.sender || "",
             subject: data.subject || "",
-            letter_type: data.letter_type === "keluar" ? "keluar" : "masuk",
             file_url: data.file_url || "",
             file_name: data.file_name || "",
           });
@@ -65,15 +56,19 @@ export default function EditMyDocumentPage() {
     if (id) fetchDoc();
   }, [id, router]);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { id, value } = e.target;
-    setFormData((prev) => ({ ...prev, [id]: value }));
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({ ...prev, subject: e.target.value }));
   };
 
-  const handleSelectChange = (val: "masuk" | "keluar") => {
-    setFormData((prev) => ({ ...prev, letter_type: val }));
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const selectedFile = e.target.files[0];
+      if (selectedFile.size > 10 * 1024 * 1024) {
+        toast.error("Maksimal 10MB");
+        return;
+      }
+      setFile(selectedFile);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -81,11 +76,17 @@ export default function EditMyDocumentPage() {
     setLoading(true);
 
     try {
+      if (!formData.subject) {
+        toast.error("Judul dokumen wajib diisi");
+        setLoading(false);
+        return;
+      }
+
       const updatePayload = {
-        sender: formData.sender,
         subject: formData.subject,
-        letter_type: formData.letter_type,
-        file: null,
+        sender: "-",
+        letter_type: "masuk" as const,
+        file: file,
       };
 
       await documentStaffAPI.update(id, updatePayload);
@@ -130,90 +131,64 @@ export default function EditMyDocumentPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* FILE PREVIEW */}
-            <div className="p-4 bg-muted/40 rounded-lg border border-dashed border-muted-foreground/25 flex items-center justify-between">
+            {/* FILE INFO */}
+            <div className="p-4 bg-muted/40 rounded-lg border border-dashed flex items-center justify-between">
               <div className="flex items-center gap-3 overflow-hidden">
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  <FileText className="h-5 w-5 text-primary" />
-                </div>
+                <FileText className="h-8 w-8 text-primary/70" />
                 <div className="flex flex-col min-w-0">
-                  <span className="text-sm font-medium truncate text-foreground/80 block max-w-[200px] sm:max-w-xs">
-                    {formData.file_name || "File Tersimpan"}
+                  <span
+                    className="text-sm font-medium truncate max-w-[200px]"
+                    title={formData.file_name}
+                  >
+                    {formData.file_name || "File Lama"}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    Klik tombol di kanan untuk melihat atau mengunduh
+                    File Saat Ini
                   </span>
                 </div>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleViewOrDownload}
-                className="shrink-0 gap-2"
-                title="Lihat atau Unduh File"
-              >
-                <Download className="h-4 w-4" />
-                Lihat / Unduh
-              </Button>
+              {formData.file_url && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleViewOrDownload}
+                >
+                  <Eye className="mr-2 h-3.5 w-3.5" /> Lihat
+                </Button>
+              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="sender">
-                Pengirim <span className="text-red-500">*</span>
-              </Label>
+              <Label htmlFor="file">Ganti File (Opsional)</Label>
               <Input
-                id="sender"
-                value={formData.sender}
-                onChange={handleChange}
-                required
-                className="border-black/20"
+                id="file"
+                type="file"
+                onChange={handleFileChange}
+                className="cursor-pointer"
               />
             </div>
 
+            {/* SUBJECT FIELD */}
             <div className="space-y-2">
-              <Label htmlFor="subject">
-                Perihal / Subjek <span className="text-red-500">*</span>
-              </Label>
+              <Label htmlFor="subject">Judul / Keterangan Dokumen</Label>
               <Input
                 id="subject"
                 value={formData.subject}
                 onChange={handleChange}
                 required
-                className="border-black/20"
+                placeholder="Contoh: Laporan Bulanan"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="letter_type">Jenis Surat</Label>
-              <Select
-                value={formData.letter_type}
-                onValueChange={handleSelectChange}
-              >
-                <SelectTrigger className="border-black/20">
-                  <SelectValue placeholder="Pilih jenis surat" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="masuk">Surat Masuk</SelectItem>
-                  <SelectItem value="keluar">Surat Keluar</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="pt-4">
-              <Button type="submit" disabled={loading} className="w-full">
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Menyimpan...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" /> Simpan Perubahan
-                  </>
-                )}
-              </Button>
-            </div>
+            <Button type="submit" disabled={loading} className="w-full mt-4">
+              {loading ? (
+                <Loader2 className="animate-spin mr-2" />
+              ) : (
+                <Save className="mr-2 h-4 w-4" />
+              )}
+              Simpan Perubahan
+            </Button>
           </form>
         </CardContent>
       </Card>

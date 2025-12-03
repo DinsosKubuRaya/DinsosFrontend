@@ -16,7 +16,6 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { Upload as UploadIcon } from "lucide-react";
 import { toast } from "sonner";
-import { UserMultiSelect } from "@/components/superior-orders/UserMultiSelect";
 import { userAPI } from "@/lib/api";
 import { User } from "@/types";
 
@@ -160,26 +159,6 @@ export function DocumentUploadForm({
               <SelectItem value="keluar">Surat Keluar</SelectItem>
             </SelectContent>
           </Select>
-        </div>
-      )}
-
-      {/* FIELD DISPOSISI: Hanya Admin */}
-      {!isStaff && (
-        <div className="p-4 border rounded-lg bg-slate-50 space-y-3">
-          <div className="flex items-center justify-between">
-            <Label className="text-base font-semibold text-slate-700">
-              Disposisi / Perintah ke Staff
-            </Label>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Pilih staff di bawah ini untuk menjadikan dokumen ini sebagai
-            Perintah Atasan.
-          </p>
-          <UserMultiSelect
-            users={users}
-            selectedUserIds={selectedUserIds}
-            onChange={setSelectedUserIds}
-          />
         </div>
       )}
 

@@ -5,7 +5,7 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get('access_token')?.value;
   const { pathname } = request.nextUrl;
 
-  const publicPaths = ['/login', '/register'];
+  const publicPaths = ['/login'];
   const isPublicPath = publicPaths.includes(pathname);
 
   const isProtectedPath = pathname.startsWith('/dashboard') || 

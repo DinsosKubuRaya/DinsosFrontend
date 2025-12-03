@@ -53,13 +53,9 @@ export function NotificationBell() {
       if (ws.current) {
         ws.current.close();
       }
-
-      console.log("Menghubungkan ke WebSocket:", wsUrl);
       const socket = new WebSocket(wsUrl);
 
-      socket.onopen = () => {
-        console.log(" WebSocket Terhubung");
-      };
+      socket.onopen = () => {};
 
       socket.onmessage = (event) => {
         try {
@@ -73,9 +69,7 @@ export function NotificationBell() {
         }
       };
 
-      socket.onclose = () => {
-        console.log(" WebSocket Terputus");
-      };
+      socket.onclose = () => {};
       ws.current = socket;
     };
     connectWebSocket();

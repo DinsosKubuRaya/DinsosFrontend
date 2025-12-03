@@ -9,7 +9,6 @@ import {
   ShieldCheck,
   Activity,
   FolderOpen,
-  Send,
   LogOut,
   ShieldAlert,
 } from "lucide-react";
@@ -49,16 +48,10 @@ export function DashboardSidebar({
 
   const staffNavigation = [
     { name: "Dokumen Saya", href: "/dashboard/my-document", icon: FolderOpen },
-    {
-      name: "Kotak Masuk Perintah",
-      href: "/dashboard/superior-orders",
-      icon: Send,
-    },
   ];
 
   const adminPanelNavigation = [
     { name: "Arsip Dokumen", href: "/dashboard/documents", icon: FileText },
-    { name: "Kelola Perintah", href: "/dashboard/superior-orders", icon: Send },
     { name: "Kelola User", href: "/dashboard/admin/users", icon: Users },
     { name: "Log Aktivitas", href: "/dashboard/activity-log", icon: Activity },
   ];

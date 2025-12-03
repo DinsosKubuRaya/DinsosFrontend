@@ -63,24 +63,6 @@ export interface DocumentStaff {
   source?: string;
 }
 
-export interface SuperiorOrder {
-  id: string;
-  document_id: string;
-  document?: Document;
-  user_id: string;
-  user?: User;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface CreateSuperiorOrderRequest {
-  document_id: string;
-  user_ids: string[];
-}
-
-export interface UpdateSuperiorOrderRequest {
-  user_ids: string[];
-}
 
 export type SharedDocument = Document | DocumentStaff;
 

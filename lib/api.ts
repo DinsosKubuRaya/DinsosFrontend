@@ -6,15 +6,12 @@ import {
   User,
   ActivityLog,
   NotificationsApiResponse,
-  SuperiorOrder,
-  CreateSuperiorOrderRequest,
-  UpdateSuperiorOrderRequest,
   DocumentStaffApiResponse,
   DocumentsResponse,
   ApiResponse
 } from "@/types";
 
-
+// --- INTERFACES ---
 interface LoginResponse {
   token: string;
   user: User;
@@ -45,7 +42,6 @@ interface UpdateUserData {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
 
-
 export const api = axios.create({
   baseURL: API_URL,
   withCredentials: true,
@@ -61,7 +57,6 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   if (token) {
     config.headers.set("Authorization", `Bearer ${token}`);
   }
-
 
   if (config.data instanceof FormData) {
     config.headers.delete("Content-Type");
@@ -147,6 +142,10 @@ export const documentAPI = {
   },
 
   update: async (id: string | number, data: DocumentUpdateData) => {
+    // Backend Document (Admin) menggunakan ShouldBindJSON, jadi JSON harus digunakan jika tidak ada file
+    // Namun jika ada file, backend Admin harus support Multipart (biasanya logic terpisah)
+    // Sesuai kode Anda sebelumnya, ini dibiarkan (logic mixed)
+    
     if (!data.file) {
       const jsonPayload = {
         sender: data.sender,
@@ -160,7 +159,6 @@ export const documentAPI = {
       );
       return response.data;
     }
-
 
     const formData = new FormData();
     formData.append("sender", data.sender);
@@ -226,26 +224,20 @@ export const documentStaffAPI = {
     }>("/document_staff", formData);
     return response.data;
   },
+  
+  // ✅ FIX: SELALU GUNAKAN FORMDATA UNTUK UPDATE DOCUMENT STAFF
+  // Karena backend DocumentStaffController.UpdateDocumentStaff menggunakan c.PostForm()
+  // yang TIDAK bisa membaca JSON.
   update: async (id: string | number, data: DocumentUpdateData) => {
-    if (!data.file) {
-      const jsonPayload = {
-        sender: data.sender,
-        subject: data.subject,
-        letter_type: data.letter_type,
-      };
-
-      const response = await api.put<{
-        message: string;
-        document: DocumentStaff;
-      }>(`/document_staff/${id}`, jsonPayload);
-      return response.data;
-    }
-
     const formData = new FormData();
-    formData.append("sender", data.sender);
+    
+    // Backend hanya membaca 'subject' dari PostForm
     formData.append("subject", data.subject);
-    formData.append("letter_type", data.letter_type);
-    formData.append("file", data.file);
+    
+    // Kirim file hanya jika ada
+    if (data.file) {
+      formData.append("file", data.file);
+    }
 
     const response = await api.put<{
       message: string;
@@ -315,44 +307,7 @@ export const userAPI = {
   },
 };
 
-// --- SUPERIOR ORDER API ---
-export const superiorOrderAPI = {
-  create: async (data: CreateSuperiorOrderRequest) => {
-    const response = await api.post<ApiResponse<null>>("/superior_orders", data);
-    return response.data;
-  },
-
-  getAll: async () => {
-    const response = await api.get<ApiResponse<SuperiorOrder[]>>("/superior_orders");
-    const data = response.data.data || response.data;
-    return Array.isArray(data) ? (data as SuperiorOrder[]) : [];
-  },
-
-  getByDocumentId: async (documentId: string) => {
-    const response = await api.get<ApiResponse<SuperiorOrder[]>>(
-      `/superior_orders/${documentId}`
-    );
-    const data = response.data.data || response.data;
-    return Array.isArray(data) ? (data as SuperiorOrder[]) : [];
-  },
-
-  update: async (documentId: string, data: UpdateSuperiorOrderRequest) => {
-    const response = await api.put<ApiResponse<null>>(
-      `/superior_orders/${documentId}`,
-      data
-    );
-    return response.data;
-  },
-
-  delete: async (documentId: string) => {
-    const response = await api.delete<ApiResponse<null>>(
-      `/superior_orders/${documentId}`
-    );
-    return response.data;
-  },
-};
-
-// --- NOTIFICATION & LOG API ---
+// --- NOTIFICATION API ---
 export const notificationAPI = {
   getAll: async () => {
     const response = await api.get<NotificationsApiResponse>("/notifications");
@@ -369,6 +324,16 @@ export const notificationAPI = {
       "/notifications/read-all"
     );
     return response.data;
+  },
+};
+
+// --- ACTIVITY LOG API ---
+export const activityLogAPI = {
+  getAll: async () => {
+    const response = await api.get<{ data: ActivityLog[]; total: number }>(
+      "/activity-logs"
+    );
+    return response.data.data;
   },
 };
 

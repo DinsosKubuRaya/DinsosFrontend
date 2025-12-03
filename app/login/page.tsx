@@ -90,16 +90,6 @@ export default function LoginPage() {
               />
             </div>
 
-            <div className="text-center text-sm text-muted-foreground">
-              Belum punya akun?{" "}
-              <Link
-                href="/register"
-                className="text-primary hover:underline font-medium"
-              >
-                Daftar di sini
-              </Link>
-            </div>
-
             <Button
               type="submit"
               className="w-full cursor-pointer"

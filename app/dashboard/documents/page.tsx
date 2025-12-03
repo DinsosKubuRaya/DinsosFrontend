@@ -30,9 +30,12 @@ export default function DocumentsPage() {
 
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [docToDelete, setDocToDelete] = useState<Document | null>(null);
 
+  const [searchTerm, setSearchTerm] = useState("");
+  const [year, setYear] = useState("all");
+  const [month, setMonth] = useState("all");
+
+  const [docToDelete, setDocToDelete] = useState<Document | null>(null);
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
   useEffect(() => {
@@ -51,7 +54,7 @@ export default function DocumentsPage() {
       fetchDocuments();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, user, isAdmin, activeTab]);
+  }, [debouncedSearch, user, isAdmin, activeTab, year, month]); // Tambahkan year & month ke dependency
 
   const fetchDocuments = async () => {
     setLoading(true);
@@ -86,22 +89,31 @@ export default function DocumentsPage() {
           setDocuments([]);
           return;
         }
-
         const response = await documentStaffAPI.getAll(params);
         let docs = response.documents || [];
-
         const currentUserId = user.ID || user.id;
-
         if (currentUserId) {
           docs = docs.filter(
             (doc) => String(doc.user_id) === String(currentUserId)
           );
         }
-
         allDocs = docs.map((doc: DocumentStaff) => ({
           ...doc,
           source: "staff",
         })) as unknown as Document[];
+      }
+
+      if (year !== "all" || month !== "all") {
+        allDocs = allDocs.filter((doc) => {
+          const docDate = new Date(doc.created_at);
+
+          const matchYear =
+            year === "all" || docDate.getFullYear().toString() === year;
+          const matchMonth =
+            month === "all" || (docDate.getMonth() + 1).toString() === month;
+
+          return matchYear && matchMonth;
+        });
       }
 
       setDocuments(allDocs);
@@ -138,20 +150,18 @@ export default function DocumentsPage() {
 
   const handleDownload = async (doc: Document) => {
     try {
-      if (doc.source === "staff" || doc.source === "document_staff") {
-        if (doc.file_url) {
-          window.open(doc.file_url, "_blank");
-        } else {
-          await documentStaffAPI.download(doc.id);
-        }
-      } else {
-        if (doc.file_url) {
-          window.open(doc.file_url, "_blank");
-        } else {
-          await documentAPI.download(doc.id);
-        }
+      if (doc.file_url) {
+        window.open(doc.file_url, "_blank");
+        toast.success("Membuka file...");
+        return;
       }
-      toast.success("Membuka file...");
+
+      if (doc.source === "staff" || doc.source === "document_staff") {
+        await documentStaffAPI.download(doc.id);
+      } else {
+        await documentAPI.download(doc.id);
+      }
+      toast.success("Mengunduh file...");
     } catch (error) {
       console.error("Download error:", error);
       toast.error("Gagal membuka file");
@@ -227,20 +237,15 @@ export default function DocumentsPage() {
         </div>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filter & Pencarian
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <DocumentFilter
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-          />
-        </CardContent>
-      </Card>
+      {/* Filter Component */}
+      <DocumentFilter
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        year={year}
+        setYear={setYear}
+        month={month}
+        setMonth={setMonth}
+      />
 
       <Card>
         <CardContent className="p-0">
@@ -253,11 +258,7 @@ export default function DocumentsPage() {
               <FileText className="mx-auto h-12 w-12 mb-4 opacity-50" />
               <p>Tidak ada dokumen ditemukan</p>
               <p className="text-sm mt-2">
-                {isAdmin && activeTab === "official"
-                  ? "Klik 'Upload Surat Dinas' untuk mulai pengarsipan"
-                  : isAdmin && activeTab === "staff"
-                  ? "Belum ada staff yang mengupload dokumen"
-                  : "Data kosong"}
+                Coba ubah filter pencarian atau tahun/bulan.
               </p>
             </div>
           ) : (

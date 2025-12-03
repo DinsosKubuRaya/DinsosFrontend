@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, useParams, useSearchParams } from "next/navigation";
+import { useEffect, useState, use } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { documentAPI, documentStaffAPI, getErrorMessage } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,15 +14,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Loader2, Eye, FileText, Upload } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Eye, FileText } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export default function EditDocumentPage() {
+export default function EditDocumentPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = use(params);
   const router = useRouter();
-  const params = useParams();
   const searchParams = useSearchParams();
-  const id = params?.id as string;
+
+  // ✅ Ambil source dari URL (?source=staff atau ?source=document)
   const source = searchParams.get("source");
+  const isStaffDoc = source === "staff";
 
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
@@ -44,13 +50,12 @@ export default function EditDocumentPage() {
 
   useEffect(() => {
     const fetchDoc = async () => {
-      if (!id) return;
-
       try {
         setFetching(true);
         let data;
 
-        if (source === "staff") {
+        // ✅ Logika Fetching Ganda (Admin vs Staff Doc)
+        if (isStaffDoc) {
           data = await documentStaffAPI.getById(id);
         } else {
           data = await documentAPI.getById(id);
@@ -58,7 +63,7 @@ export default function EditDocumentPage() {
 
         if (data) {
           setFormData({
-            sender: data.sender || "",
+            sender: data.sender || "-", // Dokumen staff tidak punya sender
             subject: data.subject || "",
             letter_type:
               data.letter_type?.toLowerCase() === "keluar" ? "keluar" : "masuk",
@@ -69,7 +74,7 @@ export default function EditDocumentPage() {
       } catch (error) {
         console.error("Error fetching document:", error);
         toast.error(
-          "Gagal memuat data. ID tidak ditemukan atau akses ditolak."
+          "Gagal memuat dokumen. Mungkin ID salah atau sudah dihapus."
         );
         router.push("/dashboard/documents");
       } finally {
@@ -78,11 +83,9 @@ export default function EditDocumentPage() {
     };
 
     fetchDoc();
-  }, [id, source, router]);
+  }, [id, isStaffDoc, router]);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
   };
@@ -94,9 +97,8 @@ export default function EditDocumentPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
-      const maxSize = 10 * 1024 * 1024; // 10MB
-      if (selectedFile.size > maxSize) {
-        toast.error("Ukuran file terlalu besar (maks 10MB)");
+      if (selectedFile.size > 10 * 1024 * 1024) {
+        toast.error("Ukuran file maksimal 10MB");
         e.target.value = "";
         return;
       }
@@ -109,23 +111,32 @@ export default function EditDocumentPage() {
     setLoading(true);
 
     try {
-      if (!formData.sender || !formData.subject) {
-        toast.error("Pengirim dan Perihal wajib diisi!");
+      if (!formData.subject) {
+        toast.error("Perihal / Judul wajib diisi!");
         setLoading(false);
         return;
       }
 
-      const updatePayload = {
-        sender: formData.sender,
-        subject: formData.subject,
-        letter_type: formData.letter_type,
-        file: file,
-      };
-
-      if (source === "staff") {
-        await documentStaffAPI.update(id, updatePayload);
+      if (isStaffDoc) {
+        await documentStaffAPI.update(id, {
+          subject: formData.subject,
+          sender: "-",
+          letter_type: "masuk",
+          file: file,
+        });
       } else {
-        await documentAPI.update(id, updatePayload);
+        // Update Dokumen Dinas (Full Fields)
+        if (!formData.sender) {
+          toast.error("Pengirim wajib diisi untuk dokumen dinas!");
+          setLoading(false);
+          return;
+        }
+        await documentAPI.update(id, {
+          sender: formData.sender,
+          subject: formData.subject,
+          letter_type: formData.letter_type,
+          file: file,
+        });
       }
 
       toast.success("Dokumen berhasil diperbarui!");
@@ -137,14 +148,6 @@ export default function EditDocumentPage() {
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleViewOrDownload = () => {
-    if (formData.file_url) {
-      window.open(formData.file_url, "_blank");
-    } else {
-      toast.error("File tidak tersedia atau link rusak.");
     }
   };
 
@@ -165,120 +168,100 @@ export default function EditDocumentPage() {
       <Card>
         <CardHeader>
           <CardTitle>
-            Edit Dokumen {source === "staff" ? "(Staff)" : "(Dinas)"}
+            Edit {isStaffDoc ? "Dokumen Staff (Monitoring)" : "Arsip Dinas"}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* FILE SECTION */}
-            <div className="space-y-3">
-              <Label>File Dokumen</Label>
-
-              <div className="p-4 bg-muted/40 rounded-lg border border-dashed border-muted-foreground/25 flex items-center justify-between">
-                <div className="flex items-center gap-3 overflow-hidden">
-                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <FileText className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-sm font-medium truncate text-foreground/80 block max-w-[200px] sm:max-w-xs">
-                      {formData.file_name || "File Tersimpan"}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      File saat ini
-                    </span>
-                  </div>
+            {/* FILE INFO */}
+            <div className="p-4 bg-muted/40 rounded-lg border border-dashed flex items-center justify-between">
+              <div className="flex items-center gap-3 overflow-hidden">
+                <FileText className="h-8 w-8 text-primary/70" />
+                <div className="flex flex-col min-w-0">
+                  <span
+                    className="text-sm font-medium truncate max-w-[200px]"
+                    title={formData.file_name}
+                  >
+                    {formData.file_name || "File Lama"}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    File Saat Ini
+                  </span>
                 </div>
+              </div>
+              {formData.file_url && (
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={handleViewOrDownload}
-                  className="shrink-0 gap-2"
-                  title="Lihat file saat ini"
+                  onClick={() => window.open(formData.file_url, "_blank")}
                 >
-                  <Eye className="h-4 w-4" />
-                  Lihat
+                  <Eye className="mr-2 h-3.5 w-3.5" /> Lihat
                 </Button>
-              </div>
-
-              <div className="pt-2">
-                <Label
-                  htmlFor="file_upload"
-                  className="text-xs font-normal text-muted-foreground mb-2 block"
-                >
-                  Ganti file (Biarkan kosong jika tidak ingin mengubah):
-                </Label>
-                <Input
-                  id="file_upload"
-                  type="file"
-                  onChange={handleFileChange}
-                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx"
-                  className="cursor-pointer border-black/20"
-                />
-                {file && (
-                  <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-                    <Upload className="h-3 w-3" /> File terpilih: {file.name}
-                  </p>
-                )}
-              </div>
+              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="sender">
-                Pengirim <span className="text-red-500">*</span>
-              </Label>
+              <Label htmlFor="file_upload">Ganti File (Opsional)</Label>
               <Input
-                id="sender"
-                value={formData.sender}
-                onChange={handleChange}
-                required
-                className="border-black/20"
+                id="file_upload"
+                type="file"
+                onChange={handleFileChange}
+                className="cursor-pointer"
               />
             </div>
 
+            {/* FIELD UNTUK ARSIP DINAS (Disembunyikan jika Dokumen Staff) */}
+            {!isStaffDoc && (
+              <div className="space-y-2">
+                <Label htmlFor="sender">Pengirim / Instansi</Label>
+                <Input
+                  id="sender"
+                  value={formData.sender}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+            )}
+
+            {/* SUBJECT (Semua Tipe Ada) */}
             <div className="space-y-2">
-              <Label htmlFor="subject">
-                Perihal / Subjek <span className="text-red-500">*</span>
-              </Label>
+              <Label htmlFor="subject">Perihal / Judul Surat</Label>
               <Input
                 id="subject"
                 value={formData.subject}
                 onChange={handleChange}
                 required
-                className="border-black/20"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="letter_type">Jenis Surat</Label>
-              <Select
-                value={formData.letter_type}
-                onValueChange={handleSelectChange}
-              >
-                <SelectTrigger className="border-black/20">
-                  <SelectValue placeholder="Pilih jenis surat" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="masuk">Surat Masuk</SelectItem>
-                  <SelectItem value="keluar">Surat Keluar</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {/* FIELD UNTUK ARSIP DINAS (Disembunyikan jika Dokumen Staff) */}
+            {!isStaffDoc && (
+              <div className="space-y-2">
+                <Label>Jenis Surat</Label>
+                <Select
+                  value={formData.letter_type}
+                  onValueChange={handleSelectChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih tipe" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="masuk">Surat Masuk</SelectItem>
+                    <SelectItem value="keluar">Surat Keluar</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
-            <div className="pt-4">
-              <Button type="submit" disabled={loading} className="w-full">
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Menyimpan...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" /> Simpan Perubahan
-                  </>
-                )}
-              </Button>
-            </div>
+            <Button type="submit" disabled={loading} className="w-full mt-4">
+              {loading ? (
+                <Loader2 className="animate-spin mr-2" />
+              ) : (
+                <Save className="mr-2 h-4 w-4" />
+              )}
+              Simpan Perubahan
+            </Button>
           </form>
         </CardContent>
       </Card>

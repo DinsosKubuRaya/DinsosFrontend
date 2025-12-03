@@ -49,7 +49,6 @@ export function ActivityLogMobileList({ logs }: ActivityLogMobileListProps) {
               </div>
             </div>
 
-            {/* Body: Aksi & Pesan */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Activity className="h-4 w-4 text-primary shrink-0" />
