@@ -66,25 +66,22 @@ export default function DocumentsPage() {
 
       if (isAdmin) {
         if (activeTab === "official") {
-          // ✅ Tab Arsip Dinas
           const response = await documentAPI.getAll(params);
           allDocs = (response.documents || []).map((doc: Document) => ({
             ...doc,
             source: "document",
           }));
         } else {
-          // ✅ Tab Monitoring Staff
           const staffResponse = await documentStaffAPI.getAll(params);
           allDocs = (staffResponse.documents || []).map(
             (doc: DocumentStaff) =>
               ({
                 ...doc,
-                source: "staff", // ✅ Tandai sebagai staff
+                source: "staff",
               } as unknown as Document)
           );
         }
       } else {
-        // Staff fallback
         if (!user) {
           setDocuments([]);
           return;
@@ -120,7 +117,6 @@ export default function DocumentsPage() {
   const executeDelete = async () => {
     if (!docToDelete) return;
     try {
-      // ✅ FIX: Deteksi source untuk delete yang tepat
       if (
         docToDelete.source === "staff" ||
         docToDelete.source === "document_staff"
@@ -142,7 +138,6 @@ export default function DocumentsPage() {
 
   const handleDownload = async (doc: Document) => {
     try {
-      // ✅ FIX: Gunakan API sesuai source
       if (doc.source === "staff" || doc.source === "document_staff") {
         if (doc.file_url) {
           window.open(doc.file_url, "_blank");

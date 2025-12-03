@@ -227,7 +227,6 @@ export const documentStaffAPI = {
     return response.data;
   },
   update: async (id: string | number, data: DocumentUpdateData) => {
-    // Jika TIDAK ADA FILE, kirim JSON
     if (!data.file) {
       const jsonPayload = {
         sender: data.sender,
@@ -359,18 +358,17 @@ export const notificationAPI = {
     const response = await api.get<NotificationsApiResponse>("/notifications");
     return response.data;
   },
+
   markAsRead: async (id: string) => {
     const response = await api.post<{ message: string }>(`/notifications/${id}/read`);
     return response.data;
   },
-};
 
-export const activityLogAPI = {
-  getAll: async () => {
-    const response = await api.get<{ data: ActivityLog[]; total: number }>(
-      "/activity-logs"
+  markAllAsRead: async () => {
+    const response = await api.post<{ message: string; updated_count: number }>(
+      "/notifications/read-all"
     );
-    return response.data.data;
+    return response.data;
   },
 };
 
