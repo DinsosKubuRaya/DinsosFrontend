@@ -137,32 +137,29 @@ export default function DashboardPage() {
 
   const handleDownload = async (doc: Document | DocumentStaff) => {
     try {
-      if (doc.source === "document") {
-        await documentAPI.download(doc.id);
+      if (doc.file_url) {
+        window.open(doc.file_url, "_blank");
+        toast.success("Membuka file...");
       } else {
-        await documentStaffAPI.download(doc.id);
+        toast.error("URL file tidak tersedia");
       }
-      toast.success("File berhasil diunduh!");
     } catch (error) {
       console.error("Download error:", error);
-      toast.error("Gagal mengunduh file", {
+      toast.error("Gagal membuka file", {
         description:
           error instanceof Error ? error.message : "Terjadi kesalahan",
       });
     }
   };
 
-  // ✅ Handler untuk klik tombol delete
   const handleDeleteClick = (doc: Document | DocumentStaff) => {
     setDocToDelete(doc);
   };
 
-  // ✅ Eksekusi delete setelah konfirmasi
   const executeDelete = async () => {
     if (!docToDelete) return;
 
     try {
-      // Delete berdasarkan source
       if (docToDelete.source === "document") {
         await documentAPI.delete(docToDelete.id);
       } else {
@@ -171,7 +168,6 @@ export default function DashboardPage() {
 
       toast.success("Dokumen berhasil dihapus");
 
-      // Refresh data
       fetchDashboardData();
     } catch (error) {
       console.error("Error deleting document:", error);
@@ -320,7 +316,6 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* ✅ TAMBAHKAN ALERT DIALOG UNTUK KONFIRMASI DELETE */}
       <AlertDialog
         open={!!docToDelete}
         onOpenChange={(open) => {

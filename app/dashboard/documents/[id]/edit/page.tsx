@@ -13,16 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import {
-  ArrowLeft,
-  Save,
-  Loader2,
-  Eye,
-  FileText,
-  Download,
-} from "lucide-react";
+import { ArrowLeft, Save, Loader2, Eye, FileText, Upload } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function EditDocumentPage() {
@@ -34,31 +26,30 @@ export default function EditDocumentPage() {
 
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [file, setFile] = useState<File | null>(null);
 
-  // State form
   const [formData, setFormData] = useState<{
     sender: string;
     subject: string;
-    document_number: string;
     letter_type: "masuk" | "keluar";
-    description: string;
     file_url?: string;
     file_name?: string;
   }>({
     sender: "",
     subject: "",
-    document_number: "",
     letter_type: "masuk",
-    description: "",
     file_url: "",
     file_name: "",
   });
 
   useEffect(() => {
     const fetchDoc = async () => {
+      if (!id) return;
+
       try {
         setFetching(true);
         let data;
+
         if (source === "staff") {
           data = await documentStaffAPI.getById(id);
         } else {
@@ -69,23 +60,24 @@ export default function EditDocumentPage() {
           setFormData({
             sender: data.sender || "",
             subject: data.subject || "",
-            document_number: data.document_number || "",
-            letter_type: data.letter_type === "keluar" ? "keluar" : "masuk",
-            description: data.description || "",
+            letter_type:
+              data.letter_type?.toLowerCase() === "keluar" ? "keluar" : "masuk",
             file_url: data.file_url || "",
             file_name: data.file_name || "",
           });
         }
       } catch (error) {
         console.error("Error fetching document:", error);
-        toast.error("Gagal memuat data. ID tidak ditemukan.");
+        toast.error(
+          "Gagal memuat data. ID tidak ditemukan atau akses ditolak."
+        );
         router.push("/dashboard/documents");
       } finally {
         setFetching(false);
       }
     };
 
-    if (id) fetchDoc();
+    fetchDoc();
   }, [id, source, router]);
 
   const handleChange = (
@@ -99,18 +91,35 @@ export default function EditDocumentPage() {
     setFormData((prev) => ({ ...prev, letter_type: val }));
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const selectedFile = e.target.files[0];
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (selectedFile.size > maxSize) {
+        toast.error("Ukuran file terlalu besar (maks 10MB)");
+        e.target.value = "";
+        return;
+      }
+      setFile(selectedFile);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      if (!formData.sender || !formData.subject) {
+        toast.error("Pengirim dan Perihal wajib diisi!");
+        setLoading(false);
+        return;
+      }
+
       const updatePayload = {
         sender: formData.sender,
         subject: formData.subject,
         letter_type: formData.letter_type,
-        document_number: formData.document_number,
-        description: formData.description,
-        file: null,
+        file: file,
       };
 
       if (source === "staff") {
@@ -131,7 +140,6 @@ export default function EditDocumentPage() {
     }
   };
 
-  // FUNGSI LIHAT / DOWNLOAD LANGSUNG
   const handleViewOrDownload = () => {
     if (formData.file_url) {
       window.open(formData.file_url, "_blank");
@@ -162,43 +170,57 @@ export default function EditDocumentPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* BAGIAN PREVIEW / DOWNLOAD FILE */}
-            <div className="p-4 bg-muted/40 rounded-lg border border-dashed border-muted-foreground/25 flex items-center justify-between">
-              <div className="flex items-center gap-3 overflow-hidden">
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  <FileText className="h-5 w-5 text-primary" />
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-sm font-medium truncate text-foreground/80 block max-w-[200px] sm:max-w-xs">
-                    {formData.file_name || "File Tersimpan"}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    Klik tombol di kanan untuk melihat atau mengunduh
-                  </span>
-                </div>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleViewOrDownload}
-                className="shrink-0 gap-2"
-                title="Lihat atau Unduh File"
-              >
-                <Eye className="h-4 w-4" />
-                Lihat / Unduh
-              </Button>
-            </div>
+            {/* FILE SECTION */}
+            <div className="space-y-3">
+              <Label>File Dokumen</Label>
 
-            <div className="space-y-2">
-              <Label htmlFor="document_number">Nomor Surat</Label>
-              <Input
-                id="document_number"
-                value={formData.document_number}
-                onChange={handleChange}
-                placeholder="Contoh: 440/123/DINSOS"
-                className="border-black/20"
-              />
+              <div className="p-4 bg-muted/40 rounded-lg border border-dashed border-muted-foreground/25 flex items-center justify-between">
+                <div className="flex items-center gap-3 overflow-hidden">
+                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <FileText className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-sm font-medium truncate text-foreground/80 block max-w-[200px] sm:max-w-xs">
+                      {formData.file_name || "File Tersimpan"}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      File saat ini
+                    </span>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleViewOrDownload}
+                  className="shrink-0 gap-2"
+                  title="Lihat file saat ini"
+                >
+                  <Eye className="h-4 w-4" />
+                  Lihat
+                </Button>
+              </div>
+
+              <div className="pt-2">
+                <Label
+                  htmlFor="file_upload"
+                  className="text-xs font-normal text-muted-foreground mb-2 block"
+                >
+                  Ganti file (Biarkan kosong jika tidak ingin mengubah):
+                </Label>
+                <Input
+                  id="file_upload"
+                  type="file"
+                  onChange={handleFileChange}
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx"
+                  className="cursor-pointer border-black/20"
+                />
+                {file && (
+                  <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                    <Upload className="h-3 w-3" /> File terpilih: {file.name}
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -241,17 +263,6 @@ export default function EditDocumentPage() {
                   <SelectItem value="keluar">Surat Keluar</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Keterangan Tambahan</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={handleChange}
-                rows={4}
-                className="border-black/20"
-              />
             </div>
 
             <div className="pt-4">

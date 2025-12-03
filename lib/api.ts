@@ -1,4 +1,4 @@
-import axios, { AxiosResponse } from "axios";
+import axios, { AxiosResponse, InternalAxiosRequestConfig } from "axios";
 import Cookies from "js-cookie";
 import {
   Document,
@@ -14,6 +14,7 @@ import {
   ApiResponse
 } from "@/types";
 
+
 interface LoginResponse {
   token: string;
   user: User;
@@ -24,8 +25,6 @@ interface DocumentUpdateData {
   sender: string;
   subject: string;
   letter_type: "masuk" | "keluar";
-  document_number?: string;
-  description?: string;
   file?: File | null;
 }
 
@@ -44,8 +43,8 @@ interface UpdateUserData {
   role: "admin" | "staff" | "superadmin";
 }
 
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
+
 
 export const api = axios.create({
   baseURL: API_URL,
@@ -56,11 +55,18 @@ export const api = axios.create({
   },
 });
 
-api.interceptors.request.use((config) => {
+// --- INTERCEPTOR ---
+api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = Cookies.get("access_token");
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+    config.headers.set("Authorization", `Bearer ${token}`);
   }
+
+
+  if (config.data instanceof FormData) {
+    config.headers.delete("Content-Type");
+  }
+
   return config;
 });
 
@@ -81,14 +87,11 @@ api.interceptors.response.use(
   }
 );
 
-// Helper type-safe untuk extract data response
 function extractData<T>(response: AxiosResponse<ApiResponse<T>>): T {
   if (response.data.data) return response.data.data;
   if (response.data.user) return response.data.user;
   if (response.data.users) return response.data.users;
   if (response.data.document) return response.data.document;
-  
-  // Fallback
   return response.data as unknown as T;
 }
 
@@ -108,13 +111,8 @@ export const authAPI = {
   },
 
   logout: async () => {
-    try {
-      const response = await api.post<ApiResponse<null>>("/logout", {});
-      return response.data;
-    } catch (error) {
-      console.error("Logout error:", error);
-      throw error;
-    }
+    const response = await api.post<ApiResponse<null>>("/logout", {});
+    return response.data;
   },
 
   register: async (data: CreateUserData) => {
@@ -126,7 +124,7 @@ export const authAPI = {
   },
 };
 
-// --- DOKUMEN DINAS (ADMIN) ---
+// --- DOKUMEN DINAS (ADMIN)  ---
 export const documentAPI = {
   getAll: async (params?: {
     page?: number;
@@ -144,28 +142,35 @@ export const documentAPI = {
   },
 
   create: async (formData: FormData) => {
-    const response = await api.post<ApiResponse<Document>>("/documents", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    const response = await api.post<ApiResponse<Document>>("/documents", formData);
     return response.data;
   },
 
   update: async (id: string | number, data: DocumentUpdateData) => {
+    if (!data.file) {
+      const jsonPayload = {
+        sender: data.sender,
+        subject: data.subject,
+        letter_type: data.letter_type,
+      };
+
+      const response = await api.put<ApiResponse<Document>>(
+        `/documents/${id}`,
+        jsonPayload
+      );
+      return response.data;
+    }
+
+
     const formData = new FormData();
     formData.append("sender", data.sender);
     formData.append("subject", data.subject);
     formData.append("letter_type", data.letter_type);
-    
-    if (data.description) formData.append("description", data.description);
-    if (data.document_number) formData.append("document_number", data.document_number);
-    if (data.file) formData.append("file", data.file);
+    formData.append("file", data.file);
 
     const response = await api.put<ApiResponse<Document>>(
       `/documents/${id}`,
-      formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
-      }
+      formData
     );
     return response.data;
   },
@@ -193,7 +198,7 @@ export const documentAPI = {
   },
 };
 
-// --- DOKUMEN STAFF (MONITORING) ---
+// --- DOKUMEN STAFF  ---
 export const documentStaffAPI = {
   getAll: async (params?: {
     page?: number;
@@ -218,28 +223,35 @@ export const documentStaffAPI = {
     const response = await api.post<{
       message: string;
       document: DocumentStaff;
-    }>("/document_staff", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    }>("/document_staff", formData);
     return response.data;
   },
-
   update: async (id: string | number, data: DocumentUpdateData) => {
+    // Jika TIDAK ADA FILE, kirim JSON
+    if (!data.file) {
+      const jsonPayload = {
+        sender: data.sender,
+        subject: data.subject,
+        letter_type: data.letter_type,
+      };
+
+      const response = await api.put<{
+        message: string;
+        document: DocumentStaff;
+      }>(`/document_staff/${id}`, jsonPayload);
+      return response.data;
+    }
+
     const formData = new FormData();
     formData.append("sender", data.sender);
     formData.append("subject", data.subject);
     formData.append("letter_type", data.letter_type);
-    
-    if (data.description) formData.append("description", data.description);
-    if (data.document_number) formData.append("document_number", data.document_number);
-    if (data.file) formData.append("file", data.file);
+    formData.append("file", data.file);
 
     const response = await api.put<{
       message: string;
       document: DocumentStaff;
-    }>(`/document_staff/${id}`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    }>(`/document_staff/${id}`, formData);
     return response.data;
   },
 
@@ -271,27 +283,14 @@ export const documentStaffAPI = {
 // --- USER API ---
 export const userAPI = {
   getAll: async (): Promise<User[]> => {
-    try {
-      const response = await api.get<{ users: User[] } | User[]>("/users");
-      if (Array.isArray(response.data)) {
-        return response.data;
-      }
-      return (response.data as { users: User[] }).users || [];
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      throw error;
-    }
+    const response = await api.get<{ users: User[] } | User[]>("/users");
+    if (Array.isArray(response.data)) return response.data;
+    return (response.data as { users: User[] }).users || [];
   },
 
   getUsersForFilter: async (): Promise<User[]> => {
-    try {
-      const response = await api.get<{ users: User[] }>("/users/for-filter");
-      const users = response.data?.users || [];
-      return Array.isArray(users) ? users : [];
-    } catch (error) {
-      console.error("Error fetching filter users:", error);
-      throw error;
-    }
+    const response = await api.get<{ users: User[] }>("/users/for-filter");
+    return response.data?.users || [];
   },
 
   create: async (data: CreateUserData) => {
@@ -325,9 +324,7 @@ export const superiorOrderAPI = {
   },
 
   getAll: async () => {
-    const response = await api.get<ApiResponse<SuperiorOrder[]>>(
-      "/superior_orders"
-    );
+    const response = await api.get<ApiResponse<SuperiorOrder[]>>("/superior_orders");
     const data = response.data.data || response.data;
     return Array.isArray(data) ? (data as SuperiorOrder[]) : [];
   },
@@ -356,22 +353,18 @@ export const superiorOrderAPI = {
   },
 };
 
-// --- NOTIFICATION API ---
+// --- NOTIFICATION & LOG API ---
 export const notificationAPI = {
   getAll: async () => {
     const response = await api.get<NotificationsApiResponse>("/notifications");
     return response.data;
   },
-
   markAsRead: async (id: string) => {
-    const response = await api.post<{ message: string }>(
-      `/notifications/${id}/read`
-    );
+    const response = await api.post<{ message: string }>(`/notifications/${id}/read`);
     return response.data;
   },
 };
 
-// --- ACTIVITY LOG API ---
 export const activityLogAPI = {
   getAll: async () => {
     const response = await api.get<{ data: ActivityLog[]; total: number }>(
@@ -381,19 +374,9 @@ export const activityLogAPI = {
   },
 };
 
-// Helper Error Message 
 export function getErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
-    if (error.response?.data?.error) {
-      return error.response.data.error;
-    }
-    if (error.response?.data?.message) {
-      return error.response.data.message;
-    }
-    return error.message || "Terjadi kesalahan";
+    return error.response?.data?.message || error.response?.data?.error || error.message || "Terjadi kesalahan";
   }
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return "Terjadi kesalahan yang tidak diketahui";
+  return error instanceof Error ? error.message : "Terjadi kesalahan yang tidak diketahui";
 }

@@ -56,7 +56,6 @@ export function DocumentTable({
     return isAdmin ? `/dashboard/documents` : `/dashboard/my-document`;
   };
 
-  // ✅ Handle async download dengan loading state
   const handleDownload = async (doc: Document | DocumentStaff) => {
     try {
       setDownloading(doc.id);
@@ -74,7 +73,7 @@ export function DocumentTable({
   };
 
   return (
-    <div className="rounded-md border bg-background">
+    <div className="rounded-md border bg-background hidden md:block">
       <Table>
         <TableHeader>
           <TableRow>
@@ -115,7 +114,7 @@ export function DocumentTable({
 
               {showSourceColumn && (
                 <TableCell>
-                  {doc.source === "staff" ? (
+                  {doc.source === "staff" || doc.source === "document_staff" ? (
                     <Badge
                       variant="outline"
                       className="text-blue-600 border-blue-200 bg-blue-50"
@@ -146,9 +145,15 @@ export function DocumentTable({
 
                     <DropdownMenuItem
                       onClick={() => {
-                        const sourceParam = doc.source
-                          ? `?source=${doc.source}`
-                          : "";
+                        let sourceParam = "";
+                        if (
+                          doc.source === "staff" ||
+                          doc.source === "document_staff"
+                        ) {
+                          sourceParam = "?source=staff";
+                        } else if (doc.source === "document") {
+                          sourceParam = "?source=document";
+                        }
                         router.push(`${getBasePath()}/${doc.id}${sourceParam}`);
                       }}
                     >
@@ -165,9 +170,16 @@ export function DocumentTable({
 
                     <DropdownMenuItem
                       onClick={() => {
-                        const sourceParam = doc.source
-                          ? `?source=${doc.source}`
-                          : "";
+                        let sourceParam = "";
+                        if (
+                          doc.source === "staff" ||
+                          doc.source === "document_staff"
+                        ) {
+                          sourceParam = "?source=staff";
+                        } else if (doc.source === "document") {
+                          sourceParam = "?source=document";
+                        }
+
                         router.push(
                           `${getBasePath()}/${doc.id}/edit${sourceParam}`
                         );

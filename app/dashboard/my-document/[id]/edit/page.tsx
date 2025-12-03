@@ -13,16 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import {
-  ArrowLeft,
-  Save,
-  Loader2,
-  FileText,
-  Eye,
-  Download,
-} from "lucide-react";
+import { ArrowLeft, Save, Loader2, FileText, Download } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function EditMyDocumentPage() {
@@ -32,22 +24,16 @@ export default function EditMyDocumentPage() {
 
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
-
-  // State form lengkap dengan file_url
   const [formData, setFormData] = useState<{
     sender: string;
     subject: string;
-    document_number: string;
     letter_type: "masuk" | "keluar";
-    description: string;
     file_url?: string;
     file_name?: string;
   }>({
     sender: "",
     subject: "",
-    document_number: "",
     letter_type: "masuk",
-    description: "",
     file_url: "",
     file_name: "",
   });
@@ -56,17 +42,13 @@ export default function EditMyDocumentPage() {
     const fetchDoc = async () => {
       try {
         setFetching(true);
-        // Staff mengedit dokumen mereka sendiri (documentStaffAPI)
         const data = await documentStaffAPI.getById(id);
 
         if (data) {
           setFormData({
             sender: data.sender || "",
             subject: data.subject || "",
-            document_number: data.document_number || "",
             letter_type: data.letter_type === "keluar" ? "keluar" : "masuk",
-            description: data.description || "",
-            // Simpan info file
             file_url: data.file_url || "",
             file_name: data.file_name || "",
           });
@@ -103,9 +85,7 @@ export default function EditMyDocumentPage() {
         sender: formData.sender,
         subject: formData.subject,
         letter_type: formData.letter_type,
-        document_number: formData.document_number,
-        description: formData.description,
-        file: null, // Staff tidak mengubah file di form ini
+        file: null,
       };
 
       await documentStaffAPI.update(id, updatePayload);
@@ -122,8 +102,6 @@ export default function EditMyDocumentPage() {
     }
   };
 
-  // FUNGSI LIHAT / DOWNLOAD LANGSUNG (FIXED)
-  // Menggunakan window.open langsung ke URL Cloudinary untuk menghindari error CORS pada redirect API
   const handleViewOrDownload = () => {
     if (formData.file_url) {
       window.open(formData.file_url, "_blank");
@@ -152,7 +130,7 @@ export default function EditMyDocumentPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* BAGIAN PREVIEW / DOWNLOAD FILE */}
+            {/* FILE PREVIEW */}
             <div className="p-4 bg-muted/40 rounded-lg border border-dashed border-muted-foreground/25 flex items-center justify-between">
               <div className="flex items-center gap-3 overflow-hidden">
                 <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -178,17 +156,6 @@ export default function EditMyDocumentPage() {
                 <Download className="h-4 w-4" />
                 Lihat / Unduh
               </Button>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="document_number">Nomor Surat</Label>
-              <Input
-                id="document_number"
-                value={formData.document_number}
-                onChange={handleChange}
-                placeholder="Contoh: 440/123/DINSOS"
-                className="border-black/20"
-              />
             </div>
 
             <div className="space-y-2">
@@ -231,17 +198,6 @@ export default function EditMyDocumentPage() {
                   <SelectItem value="keluar">Surat Keluar</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Keterangan Tambahan</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={handleChange}
-                rows={4}
-                className="border-black/20"
-              />
             </div>
 
             <div className="pt-4">

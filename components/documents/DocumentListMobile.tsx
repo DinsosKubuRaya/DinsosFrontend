@@ -19,14 +19,22 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { getUserId, SharedDocument } from "@/types";
+import { Document, DocumentStaff } from "@/types";
+interface UserWithId {
+  id?: string;
+  ID?: string;
+}
+
+function getUserId(user: UserWithId): string {
+  return user?.ID || user?.id || "";
+}
 
 interface DocumentListMobileProps {
-  documents: SharedDocument[];
+  documents: (Document | DocumentStaff)[];
   isAdmin?: boolean;
   formatDate: (date: string) => string;
-  onDownload?: (doc: SharedDocument) => void;
-  onDeleteClick?: (doc: SharedDocument) => void;
+  onDownload?: (doc: Document | DocumentStaff) => void;
+  onDeleteClick?: (doc: Document | DocumentStaff) => void;
   isMyDocumentPage?: boolean;
   showSourceBadge?: boolean;
 }
@@ -40,12 +48,35 @@ export function DocumentListMobile({
   showSourceBadge = false,
 }: DocumentListMobileProps) {
   const { user } = useAuth();
-  const currentUserId = user ? getUserId(user) : null;
+  const currentUserId = user ? getUserId(user as UserWithId) : null;
 
-  const getDetailLink = (id: string) =>
-    isMyDocumentPage
-      ? `/dashboard/my-document/${id}`
-      : `/dashboard/documents/${id}`;
+  const getDetailLink = (doc: Document | DocumentStaff) => {
+    let sourceParam = "";
+    if (doc.source === "staff" || doc.source === "document_staff") {
+      sourceParam = "?source=staff";
+    } else if (doc.source === "document") {
+      sourceParam = "?source=document";
+    }
+
+    const basePath = isMyDocumentPage
+      ? "/dashboard/my-document"
+      : "/dashboard/documents";
+    return `${basePath}/${doc.id}${sourceParam}`;
+  };
+
+  const getEditLink = (doc: Document | DocumentStaff) => {
+    let sourceParam = "";
+    if (doc.source === "staff" || doc.source === "document_staff") {
+      sourceParam = "?source=staff";
+    } else if (doc.source === "document") {
+      sourceParam = "?source=document";
+    }
+
+    const basePath = isMyDocumentPage
+      ? "/dashboard/my-document"
+      : "/dashboard/documents";
+    return `${basePath}/${doc.id}/edit${sourceParam}`;
+  };
 
   return (
     <div className="block md:hidden border-t">
@@ -99,7 +130,7 @@ export function DocumentListMobile({
                 <div className="flex items-center justify-between">
                   <p className="flex items-center gap-2">
                     <User className="h-3 w-3" />
-                    {doc.user_name || doc.user?.name || "-"}
+                    {doc.user?.name || "-"}
                   </p>
                   <p className="flex items-center gap-2">
                     <Clock className="h-3 w-3" />
@@ -123,14 +154,14 @@ export function DocumentListMobile({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <Link href={getDetailLink(doc.id)}>
+                  <Link href={getDetailLink(doc)}>
                     <DropdownMenuItem>
                       <Eye className="mr-2 h-4 w-4" /> Lihat / Download
                     </DropdownMenuItem>
                   </Link>
 
                   {showEdit && (
-                    <Link href={`/dashboard/my-document/${doc.id}/edit`}>
+                    <Link href={getEditLink(doc)}>
                       <DropdownMenuItem>
                         <Pencil className="mr-2 h-4 w-4" /> Edit
                       </DropdownMenuItem>
