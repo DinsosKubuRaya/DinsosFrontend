@@ -26,14 +26,15 @@ import {
 } from "lucide-react";
 import { Document, DocumentStaff } from "@/types";
 import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { useState } from "react";
 
 interface DocumentTableProps {
   documents: (Document | DocumentStaff)[];
   isAdmin: boolean;
   formatDate: (date: string) => string;
-  onDownload: (doc: Document | DocumentStaff) => void;
+  onDownload: (doc: Document | DocumentStaff) => Promise<void>;
   onDeleteClick?: (doc: Document | DocumentStaff) => void;
   isMyDocumentPage?: boolean;
   showSourceColumn?: boolean;
@@ -49,12 +50,27 @@ export function DocumentTable({
   showSourceColumn = false,
 }: DocumentTableProps) {
   const router = useRouter();
+  const [downloading, setDownloading] = useState<string | number | null>(null);
 
-  const getBasePath = (doc: Document | DocumentStaff) => {
-    if (isAdmin) {
-      return `/dashboard/documents`;
+  const getBasePath = () => {
+    return isAdmin ? `/dashboard/documents` : `/dashboard/my-document`;
+  };
+
+  // ✅ Handle async download dengan loading state
+  const handleDownload = async (doc: Document | DocumentStaff) => {
+    try {
+      setDownloading(doc.id);
+      await onDownload(doc);
+      toast.success("File berhasil diunduh!");
+    } catch (error) {
+      console.error("Download error:", error);
+      toast.error("Gagal mengunduh file", {
+        description:
+          error instanceof Error ? error.message : "Terjadi kesalahan",
+      });
+    } finally {
+      setDownloading(null);
     }
-    return `/dashboard/my-document`;
   };
 
   return (
@@ -130,44 +146,42 @@ export function DocumentTable({
 
                     <DropdownMenuItem
                       onClick={() => {
-                        const basePath = getBasePath(doc);
                         const sourceParam = doc.source
                           ? `?source=${doc.source}`
                           : "";
-                        router.push(`${basePath}/${doc.id}${sourceParam}`);
+                        router.push(`${getBasePath()}/${doc.id}${sourceParam}`);
                       }}
                     >
                       <Eye className="mr-2 h-4 w-4" /> Detail
                     </DropdownMenuItem>
 
-                    <DropdownMenuItem onClick={() => onDownload(doc)}>
-                      <Download className="mr-2 h-4 w-4" /> Unduh
+                    <DropdownMenuItem
+                      onClick={() => handleDownload(doc)}
+                      disabled={downloading === doc.id}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      {downloading === doc.id ? "Mengunduh..." : "Unduh"}
                     </DropdownMenuItem>
 
-                    {(isAdmin || isMyDocumentPage) && (
-                      <>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            const basePath = getBasePath(doc);
-                            const sourceParam = doc.source
-                              ? `?source=${doc.source}`
-                              : "";
-                            router.push(
-                              `${basePath}/${doc.id}/edit${sourceParam}`
-                            );
-                          }}
-                        >
-                          <Edit className="mr-2 h-4 w-4" /> Edit
-                        </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        const sourceParam = doc.source
+                          ? `?source=${doc.source}`
+                          : "";
+                        router.push(
+                          `${getBasePath()}/${doc.id}/edit${sourceParam}`
+                        );
+                      }}
+                    >
+                      <Edit className="mr-2 h-4 w-4" /> Edit
+                    </DropdownMenuItem>
 
-                        <DropdownMenuItem
-                          className="text-red-600 focus:text-red-600"
-                          onClick={() => onDeleteClick && onDeleteClick(doc)}
-                        >
-                          <Trash className="mr-2 h-4 w-4" /> Hapus
-                        </DropdownMenuItem>
-                      </>
-                    )}
+                    <DropdownMenuItem
+                      className="text-red-600 focus:text-red-600"
+                      onClick={() => onDeleteClick && onDeleteClick(doc)}
+                    >
+                      <Trash className="mr-2 h-4 w-4" /> Hapus
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>

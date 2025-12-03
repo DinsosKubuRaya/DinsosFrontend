@@ -120,6 +120,14 @@ export default function MyDocumentPage() {
 
   const executeDelete = async () => {
     if (!docToDelete) return;
+
+    // ✅ Cek apakah dokumen ini milik staff (hanya dokumen staff yang bisa dihapus)
+    if (docToDelete.source !== "document_staff") {
+      toast.error("Anda tidak dapat menghapus dokumen dari admin");
+      setDocToDelete(null);
+      return;
+    }
+
     try {
       await documentStaffAPI.delete(docToDelete.id);
       toast.success("Dokumen berhasil dihapus");
@@ -147,7 +155,13 @@ export default function MyDocumentPage() {
     }
   };
 
+  // ✅ Handler delete yang cek apakah dokumen bisa dihapus
   const handleDeleteClick = (doc: Document) => {
+    // Jika di tab "admin" (dokumen dari admin), tidak bisa dihapus oleh staff
+    if (!isAdmin && doc.source === "document") {
+      toast.error("Anda tidak dapat menghapus dokumen dari admin");
+      return;
+    }
     setDocToDelete(doc);
   };
 

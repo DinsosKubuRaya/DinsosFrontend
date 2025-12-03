@@ -1,13 +1,13 @@
 export type User = {
-  ID?: string;     
-  id?: string;     
+  ID?: string;
+  id?: string;
   name: string;
   username: string;
-  role: 'superadmin' | 'admin' | 'staff'; 
+  role: 'superadmin' | 'admin' | 'staff';
   photo_url?: string | null;
   photo_id?: string | null;
   created_at?: string;
-  CreatedAt?: string; 
+  CreatedAt?: string;
   updated_at?: string;
   UpdatedAt?: string;
 };
@@ -26,15 +26,17 @@ export function getUserId(user: User): string | undefined {
 }
 
 export type Document = {
-  id: string;   
+  id: string;
   sender: string;
   file_name: string;
-  subject: string;       
-  public_id: string;        
+  subject: string;
+  public_id: string;
   resource_type: string;
   letter_type: 'masuk' | 'keluar';
-  user_id?: string; 
-  file_url: string; 
+  document_number?: string; 
+  description?: string;    
+  user_id?: string;
+  file_url: string;
   user?: User;
   user_name?: string;
   created_at: string;
@@ -43,15 +45,17 @@ export type Document = {
 };
 
 export interface DocumentStaff {
-  id: string;   
+  id: string;
   sender: string;
   file_name: string;
-  subject: string;       
-  public_id: string;        
+  subject: string;
+  public_id: string;
   resource_type: string;
   letter_type: 'masuk' | 'keluar';
-  user_id?: string; 
-  file_url: string; 
+  document_number?: string;
+  description?: string;
+  user_id?: string;
+  file_url: string;
   user?: User;
   user_name?: string;
   created_at: string;
@@ -71,11 +75,11 @@ export interface SuperiorOrder {
 
 export interface CreateSuperiorOrderRequest {
   document_id: string;
-  user_ids: string[]; 
+  user_ids: string[];
 }
 
 export interface UpdateSuperiorOrderRequest {
-  user_ids: string[]; 
+  user_ids: string[];
 }
 
 export type SharedDocument = Document | DocumentStaff;
@@ -86,7 +90,7 @@ export interface Notification {
   message: string;
   is_read: boolean;
   link: string;
-  created_at: string; 
+  created_at: string;
 }
 
 export interface NotificationsApiResponse {
@@ -95,14 +99,14 @@ export interface NotificationsApiResponse {
 }
 
 export interface ApiResponse<T> {
-    status?: 'success' | 'error';
-    message?: string;
-    data?: T; 
-    users?: T; 
-    user?: T;
-    document?: T;
-    error?: string; 
-    errors?: Record<string, string[]>;
+  status?: 'success' | 'error';
+  message?: string;
+  data?: T;
+  users?: T;
+  user?: T;
+  document?: T;
+  error?: string;
+  errors?: Record<string, string[]>;
 }
 
 export interface DocumentsResponse {
@@ -114,7 +118,7 @@ export interface DocumentsResponse {
 }
 
 export interface DocumentStaffApiResponse {
-  documents: DocumentStaff[]; 
+  documents: DocumentStaff[];
   total: number;
   current_page: number;
   last_page: number;

@@ -11,6 +11,17 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { DocumentTable } from "@/components/documents/DocumentTable";
 import { DocumentListMobile } from "@/components/documents/DocumentListMobile";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function DashboardPage() {
   const { user, isAdmin, isSuperAdmin } = useAuth();
@@ -26,6 +37,11 @@ export default function DashboardPage() {
   const [recentDocuments, setRecentDocuments] = useState<
     (Document | DocumentStaff)[]
   >([]);
+
+  // ✅ State untuk delete confirmation
+  const [docToDelete, setDocToDelete] = useState<
+    Document | DocumentStaff | null
+  >(null);
 
   useEffect(() => {
     if (user || isAdmin) {
@@ -126,8 +142,42 @@ export default function DashboardPage() {
       } else {
         await documentStaffAPI.download(doc.id);
       }
-    } catch (e) {
-      console.error(e);
+      toast.success("File berhasil diunduh!");
+    } catch (error) {
+      console.error("Download error:", error);
+      toast.error("Gagal mengunduh file", {
+        description:
+          error instanceof Error ? error.message : "Terjadi kesalahan",
+      });
+    }
+  };
+
+  // ✅ Handler untuk klik tombol delete
+  const handleDeleteClick = (doc: Document | DocumentStaff) => {
+    setDocToDelete(doc);
+  };
+
+  // ✅ Eksekusi delete setelah konfirmasi
+  const executeDelete = async () => {
+    if (!docToDelete) return;
+
+    try {
+      // Delete berdasarkan source
+      if (docToDelete.source === "document") {
+        await documentAPI.delete(docToDelete.id);
+      } else {
+        await documentStaffAPI.delete(docToDelete.id);
+      }
+
+      toast.success("Dokumen berhasil dihapus");
+
+      // Refresh data
+      fetchDashboardData();
+    } catch (error) {
+      console.error("Error deleting document:", error);
+      toast.error("Gagal menghapus dokumen");
+    } finally {
+      setDocToDelete(null);
     }
   };
 
@@ -248,6 +298,7 @@ export default function DashboardPage() {
                 isAdmin={isAdmin}
                 formatDate={formatDate}
                 onDownload={handleDownload}
+                onDeleteClick={handleDeleteClick}
                 isMyDocumentPage={!isAdmin}
                 showSourceColumn={isAdmin}
               />
@@ -256,6 +307,7 @@ export default function DashboardPage() {
                 isAdmin={isAdmin}
                 formatDate={formatDate}
                 onDownload={handleDownload}
+                onDeleteClick={handleDeleteClick}
                 isMyDocumentPage={!isAdmin}
                 showSourceBadge={isAdmin}
               />
@@ -267,6 +319,36 @@ export default function DashboardPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* ✅ TAMBAHKAN ALERT DIALOG UNTUK KONFIRMASI DELETE */}
+      <AlertDialog
+        open={!!docToDelete}
+        onOpenChange={(open) => {
+          if (!open) setDocToDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Anda yakin ingin menghapus?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Dokumen{" "}
+              <span className="font-bold text-foreground">
+                {docToDelete?.subject}
+              </span>{" "}
+              akan dihapus secara permanen.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={executeDelete}
+            >
+              Ya, Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

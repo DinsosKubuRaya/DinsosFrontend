@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { documentAPI, documentStaffAPI } from "@/lib/api"; // Import documentAPI
+import { documentAPI, documentStaffAPI } from "@/lib/api";
 import { Document, DocumentStaff } from "@/types";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -22,12 +22,12 @@ import { useAuth } from "@/context/AuthContext";
 import { DocumentTable } from "@/components/documents/DocumentTable";
 import { DocumentListMobile } from "@/components/documents/DocumentListMobile";
 import { DocumentFilter } from "@/components/documents/DocumentFilter";
-import { getUserId } from "@/lib/userHelpers";
-import { Badge } from "@/components/ui/badge";
+import { getUserId } from "@/lib/userHelpers"; // Import helper opsional jika dibutuhkan
 
 export default function DocumentsPage() {
   const { user, isAdmin } = useAuth();
 
+  // Tab State untuk Admin: 'official' (Arsip Dinas) atau 'staff' (Monitoring)
   const [activeTab, setActiveTab] = useState<"official" | "staff">("official");
 
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -42,9 +42,12 @@ export default function DocumentsPage() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
+  // Reset tab ke official jika user berubah
   useEffect(() => {
-    setActiveTab("official");
-  }, [user]);
+    if (isAdmin) {
+      setActiveTab("official");
+    }
+  }, [user, isAdmin]);
 
   useEffect(() => {
     if (user || isAdmin) {
@@ -67,19 +70,30 @@ export default function DocumentsPage() {
       if (isAdmin) {
         // === LOGIKA ADMIN/SUPERADMIN ===
         if (activeTab === "official") {
+          // Tab 1: Ambil Arsip Dinas (documentAPI)
           const response = await documentAPI.getAll(params);
-          allDocs = (response.documents || []).map((doc) => ({
+          allDocs = (response.documents || []).map((doc: Document) => ({
             ...doc,
-            source: "document",
+            source: "document", // Tandai sebagai dokumen dinas
           }));
         } else {
+          // Tab 2: Monitoring Staff (documentStaffAPI)
           const staffResponse = await documentStaffAPI.getAll(params);
-          allDocs = (staffResponse.documents || []).map((doc: unknown) => ({
-            ...(doc as Document),
-            source: "staff",
-          }));
+
+          // Mapping DocumentStaff ke Document agar kompatibel dengan tabel
+          // Kita gunakan tipe DocumentStaff di parameter map
+          allDocs = (staffResponse.documents || []).map(
+            (doc: DocumentStaff) =>
+              ({
+                ...doc,
+                // Pastikan properti yang mungkin undefined diisi default jika perlu
+                // Namun karena Interface Document dan DocumentStaff kompatibel, casting aman
+                source: "staff",
+              } as unknown as Document) // Type assertion aman karena struktur sama
+          );
         }
       } else {
+        // === LOGIKA STAFF (Fallback) ===
         if (!user) {
           setDocuments([]);
           return;
@@ -88,16 +102,19 @@ export default function DocumentsPage() {
         const response = await documentStaffAPI.getAll(params);
         let docs = response.documents || [];
 
-        const currentUserId = String(getUserId(user));
-        docs = docs.filter((doc) => {
-          const docUserId = doc.user_id ? String(doc.user_id) : "";
-          return docUserId === currentUserId;
-        });
+        const currentUserId = user.ID || user.id;
 
-        allDocs = docs.map((doc: unknown) => ({
-          ...(doc as Document),
+        if (currentUserId) {
+          docs = docs.filter(
+            (doc) => String(doc.user_id) === String(currentUserId)
+          );
+        }
+
+        // Mapping tanpa any
+        allDocs = docs.map((doc: DocumentStaff) => ({
+          ...doc,
           source: "staff",
-        }));
+        })) as unknown as Document[];
       }
 
       setDocuments(allDocs);
@@ -113,6 +130,7 @@ export default function DocumentsPage() {
   const executeDelete = async () => {
     if (!docToDelete) return;
     try {
+      // Cek source untuk menentukan API delete yang dipakai
       if (docToDelete.source === "staff") {
         await documentStaffAPI.delete(docToDelete.id);
       } else {
@@ -175,7 +193,7 @@ export default function DocumentsPage() {
           </p>
         </div>
 
-        {/* Tombol Upload hanya muncul untuk Admin di tab Official, atau untuk Staff */}
+        {/* Tombol Upload hanya muncul untuk Admin di tab Official */}
         {isAdmin && activeTab === "official" && (
           <Link href="/dashboard/documents/upload">
             <Button>
@@ -186,7 +204,7 @@ export default function DocumentsPage() {
         )}
       </div>
 
-      {/* --- TAB NAVIGASI ADMIN/SUPERADMIN --- */}
+      {/* --- TAB NAVIGASI ADMIN --- */}
       {isAdmin && (
         <div className="flex p-1 bg-muted/50 rounded-lg w-full sm:w-fit border mb-4">
           <button
@@ -251,12 +269,12 @@ export default function DocumentsPage() {
             <div>
               <DocumentTable
                 documents={documents}
-                isAdmin={isAdmin}
+                isAdmin={isAdmin} // Admin bisa delete di kedua tab
                 formatDate={formatDate}
                 onDownload={handleDownload}
                 onDeleteClick={setDocToDelete}
                 isMyDocumentPage={!isAdmin}
-                showSourceColumn={activeTab === "staff"}
+                showSourceColumn={activeTab === "staff"} // Tampilkan sumber user hanya di monitoring
               />
 
               <DocumentListMobile
@@ -266,6 +284,7 @@ export default function DocumentsPage() {
                 onDownload={handleDownload}
                 onDeleteClick={setDocToDelete}
                 isMyDocumentPage={!isAdmin}
+                showSourceBadge={isAdmin}
               />
             </div>
           )}
