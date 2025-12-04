@@ -26,6 +26,7 @@ export function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
   const ws = useRef<WebSocket | null>(null);
+
   const fetchNotifications = async () => {
     try {
       const response = await notificationAPI.getAll();
@@ -37,11 +38,13 @@ export function NotificationBell() {
       setIsLoading(false);
     }
   };
+
   useEffect(() => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 60000);
     return () => clearInterval(interval);
   }, []);
+
   useEffect(() => {
     if (!user) return;
     const apiUrl =
@@ -50,33 +53,24 @@ export function NotificationBell() {
     const wsUrl = `${wsBaseUrl}/ws/notifications?user_id=${user.ID || user.id}`;
 
     const connectWebSocket = () => {
-      if (ws.current) {
-        ws.current.close();
-      }
+      if (ws.current) ws.current.close();
       const socket = new WebSocket(wsUrl);
-
-      socket.onopen = () => {};
 
       socket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          toast.info("Notifikasi Baru", {
-            description: data.message || "Anda menerima notifikasi baru.",
-          });
+          toast.info("Notifikasi Baru", { description: data.message });
           fetchNotifications();
         } catch (e) {
-          console.error("Error parsing WS message", e);
+          console.error("WS Parse Error", e);
         }
       };
-
-      socket.onclose = () => {};
       ws.current = socket;
     };
+
     connectWebSocket();
     return () => {
-      if (ws.current) {
-        ws.current.close();
-      }
+      if (ws.current) ws.current.close();
     };
   }, [user]);
 
@@ -94,13 +88,9 @@ export function NotificationBell() {
       setIsOpen(false);
       if (notification.link) {
         let targetLink = notification.link;
-        if (!targetLink.startsWith("/")) {
-          targetLink = "/" + targetLink;
-        }
-        if (!targetLink.startsWith("/dashboard")) {
+        if (!targetLink.startsWith("/")) targetLink = "/" + targetLink;
+        if (!targetLink.startsWith("/dashboard"))
           targetLink = `/dashboard${targetLink}`;
-        }
-        console.log("Redirecting to:", targetLink);
         router.push(targetLink);
       }
     } catch (error) {
@@ -111,100 +101,103 @@ export function NotificationBell() {
   const handleMarkAllRead = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-
     if (unreadCount === 0) return;
-
     try {
       await notificationAPI.markAllAsRead();
       setUnreadCount(0);
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-      toast.success("Semua notifikasi ditandai sudah dibaca");
+      toast.success("Semua ditandai sudah dibaca");
     } catch (error) {
-      toast.error("Gagal menandai semua dibaca");
+      toast.error("Gagal menandai");
     }
   };
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative h-10 w-10 rounded-full hover:bg-muted/50 border border-transparent hover:border-border/50"
+        >
+          <Bell className="h-5 w-5 text-muted-foreground" />
           {unreadCount > 0 && (
-            <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full bg-red-500 border-2 border-background animate-pulse" />
+            <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-destructive border-2 border-background shadow-sm animate-pulse" />
           )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className="w-80 max-h-[400px] overflow-y-auto"
+        className="w-80 rounded-2xl shadow-xl border-border/60 p-0 overflow-hidden"
       >
-        <DropdownMenuLabel className="flex justify-between items-center sticky top-0 bg-popover z-10 py-2 border-b">
+        <DropdownMenuLabel className="flex justify-between items-center p-4 bg-muted/20 border-b border-border/40">
           <div className="flex items-center gap-2">
-            <span>Notifikasi</span>
+            <span className="font-semibold">Notifikasi</span>
             {unreadCount > 0 && (
-              <span className="bg-red-100 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded-full">
+              <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full">
                 {unreadCount} Baru
               </span>
             )}
           </div>
-
           {unreadCount > 0 && (
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 text-[10px] px-2 text-muted-foreground hover:text-primary"
+              className="h-7 text-xs px-2 text-primary hover:text-primary hover:bg-primary/10 rounded-lg gap-1"
               onClick={handleMarkAllRead}
             >
-              <CheckCheck className="mr-1 h-3 w-3" />
-              Tandai dibaca
+              <CheckCheck className="h-3 w-3" />
+              Baca Semua
             </Button>
           )}
         </DropdownMenuLabel>
 
-        {isLoading && notifications.length === 0 ? (
-          <div className="py-8 text-center text-sm text-muted-foreground">
-            <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
-            Memuat...
-          </div>
-        ) : notifications.length === 0 ? (
-          <div className="py-8 text-center text-sm text-muted-foreground">
-            Tidak ada notifikasi baru
-          </div>
-        ) : (
-          <div className="divide-y">
-            {notifications.map((notif) => (
-              <DropdownMenuItem
-                key={notif.id}
-                onClick={() => handleNotificationClick(notif)}
-                className={`
-                  flex flex-col items-start gap-1 cursor-pointer p-3 focus:bg-accent
-                  ${!notif.is_read ? "bg-muted/30" : ""}
-                `}
-              >
-                <div className="flex w-full justify-between gap-2 items-start">
-                  <p
-                    className={`text-sm leading-snug ${
-                      !notif.is_read
-                        ? "font-semibold text-foreground"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    {notif.message}
+        <div className="max-h-[350px] overflow-y-auto scrollbar-thin">
+          {isLoading && notifications.length === 0 ? (
+            <div className="py-8 text-center text-sm text-muted-foreground">
+              Memuat...
+            </div>
+          ) : notifications.length === 0 ? (
+            <div className="py-12 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
+              <Bell className="h-8 w-8 opacity-20" />
+              <span>Tidak ada notifikasi baru</span>
+            </div>
+          ) : (
+            <div className="divide-y divide-border/30">
+              {notifications.map((notif) => (
+                <DropdownMenuItem
+                  key={notif.id}
+                  onClick={() => handleNotificationClick(notif)}
+                  className={`
+                    flex flex-col items-start gap-1 p-4 cursor-pointer focus:bg-muted/50 transition-colors
+                    ${!notif.is_read ? "bg-primary/30" : ""}
+                    `}
+                >
+                  <div className="flex w-full justify-between gap-3 items-start">
+                    <p
+                      className={`text-sm leading-snug ${
+                        !notif.is_read
+                          ? "font-semibold text-foreground"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      {notif.message}
+                    </p>
+                    {!notif.is_read && (
+                      <span className="h-2 w-2 mt-1.5 shrink-0 rounded-full bg-primary shadow-sm" />
+                    )}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground/70 mt-1 font-medium">
+                    {formatDistanceToNow(new Date(notif.created_at), {
+                      addSuffix: true,
+                      locale: id,
+                    })}
                   </p>
-                  {!notif.is_read && (
-                    <span className="h-2 w-2 mt-1.5 shrink-0 rounded-full bg-blue-500" />
-                  )}
-                </div>
-                <p className="text-[10px] text-muted-foreground/80 mt-1">
-                  {formatDistanceToNow(new Date(notif.created_at), {
-                    addSuffix: true,
-                    locale: id,
-                  })}
-                </p>
-              </DropdownMenuItem>
-            ))}
-          </div>
-        )}
+                </DropdownMenuItem>
+              ))}
+            </div>
+          )}
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );

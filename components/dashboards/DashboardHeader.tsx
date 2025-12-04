@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,11 +11,19 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Menu, LogOut, User as UserIcon, Settings } from "lucide-react";
-import Link from "next/link";
-import { User } from "@/types";
+import { Menu, LogOut, ChevronDown, User as UserIcon } from "lucide-react";
 import Image from "next/image";
+import { User } from "@/types";
 import { NotificationBell } from "./NotificationBell";
+
+import {
+  UserFormDialog,
+  UserFormData,
+  UserRole,
+} from "@/components/users/UserFormDialog";
+import { userAPI, getErrorMessage } from "@/lib/api";
+import { toast } from "sonner";
+import { getUserId } from "@/lib/userHelpers";
 
 interface DashboardHeaderProps {
   user: User | null;
@@ -27,10 +36,19 @@ interface DashboardHeaderProps {
 export function DashboardHeader({
   user,
   logout,
-  isAdmin,
   sidebarOpen,
   setSidebarOpen,
 }: DashboardHeaderProps) {
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const [formData, setFormData] = useState<UserFormData>({
+    name: user?.name || "",
+    username: user?.username || "",
+    password: "",
+    role: (user?.role as UserRole) || "staff",
+  });
+
   const getInitials = (name: string) => {
     return name
       .split(" ")
@@ -40,95 +58,160 @@ export function DashboardHeader({
       .slice(0, 2);
   };
 
-  // Format Role Display
-  const getRoleLabel = (role?: string) => {
-    if (role === "superadmin") return "Super Admin";
-    if (role === "admin") return "Administrator";
-    return "Staff Pegawai";
+  const handleOpenProfile = () => {
+    if (user) {
+      setFormData({
+        name: user.name,
+        username: user.username,
+        password: "",
+        role: user.role as UserRole,
+      });
+      setIsProfileOpen(true);
+    }
+  };
+
+  const handleSaveProfile = async (
+    e: React.FormEvent,
+    photoFile?: File | null
+  ) => {
+    e.preventDefault();
+    if (!user) return;
+
+    const userId = getUserId(user);
+    if (!userId) return;
+
+    setIsSaving(true);
+    try {
+      const updateData = new FormData();
+      updateData.append("name", formData.name);
+      updateData.append("username", formData.username);
+      if (formData.password && formData.password.trim() !== "") {
+        updateData.append("new_password", formData.password);
+      }
+
+      if (photoFile) {
+        updateData.append("photo", photoFile);
+      }
+
+      await userAPI.update(userId, updateData);
+
+      toast.success("Profil berhasil diperbarui", {
+        description: "Halaman akan dimuat ulang...",
+      });
+
+      setIsProfileOpen(false);
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (error) {
+      toast.error("Gagal memperbarui profil", {
+        description: getErrorMessage(error),
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
-      <div className="flex h-16 items-center px-4 md:px-6">
-        {/* Mobile Menu Button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="mr-4 lg:hidden"
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-        >
-          <Menu className="h-6 w-6" />
-          <span className="sr-only">Toggle Menu</span>
-        </Button>
+    <>
+      <header className="sticky top-0 z-40 w-full h-16 border-b border-border/50 bg-background/80 backdrop-blur-xl transition-all">
+        <div className="flex h-full items-center justify-between px-4 md:px-6">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="lg:hidden text-muted-foreground"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+            >
+              <Menu className="h-6 w-6" />
+            </Button>
 
-        {/* Logo / Title */}
-        <div className="flex items-center gap-2 font-bold text-lg md:text-xl cursor-pointer">
-          <Image src="/logodinsos.png" alt="Logo" width={150} height={150} />
-        </div>
+            <div className="flex items-center gap-3">
+              <Image
+                src="/logodinsos.png"
+                alt="Logo"
+                width={150}
+                height={40}
+                className="h-10 w-auto object-contain"
+                priority
+              />
+            </div>
+          </div>
 
-        {/* Right Section */}
-        <div className="ml-auto flex items-center gap-2 md:gap-4">
-          <NotificationBell />
+          <div className="flex items-center gap-2 md:gap-3">
+            <NotificationBell />
+            <div className="h-6 w-px bg-border/50 hidden md:block mx-1" />
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                className="relative h-10 w-10 rounded-full"
-              >
-                <Avatar className="h-9 w-9 border-2 border-primary/10">
-                  <AvatarImage src={user?.photo_url || ""} alt={user?.name} />
-                  <AvatarFallback className="bg-primary/5 font-bold text-primary">
-                    {user?.name ? getInitials(user.name) : "U"}
-                  </AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end" forceMount>
-              <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">
-                    {user?.name}
-                  </p>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <span
-                      className={`text-xs px-1.5 py-0.5 rounded font-semibold ${
-                        user?.role === "superadmin"
-                          ? "bg-red-100 text-red-700"
-                          : user?.role === "admin"
-                          ? "bg-blue-100 text-blue-700"
-                          : "bg-slate-100 text-slate-700"
-                      }`}
-                    >
-                      {getRoleLabel(user?.role)}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="pl-1 pr-2 gap-2 h-10 rounded-full hover:bg-muted/50 border border-transparent hover:border-border/50 transition-all"
+                >
+                  <Avatar className="h-8 w-8 border border-border">
+                    <AvatarImage src={user?.photo_url || ""} alt={user?.name} />
+                    <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                      {user?.name ? getInitials(user.name) : "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="hidden md:flex flex-col items-start text-left mr-1">
+                    <span className="text-xs font-semibold leading-none">
+                      {user?.name?.split(" ")[0]}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground capitalize leading-none mt-0.5">
+                      {user?.role}
                     </span>
                   </div>
-                  <p className="text-xs leading-none text-muted-foreground mt-1">
-                    @{user?.username}
-                  </p>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {/* <DropdownMenuItem>
-                <UserIcon className="mr-2 h-4 w-4" />
-                <span>Profil Saya</span>
-              </DropdownMenuItem> */}
-              {/* <DropdownMenuItem>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Pengaturan</span>
-              </DropdownMenuItem> */}
-              {/* <DropdownMenuSeparator /> */}
-              <DropdownMenuItem
-                onClick={logout}
-                className="text-red-600 focus:bg-red-50 focus:text-red-700 cursor-pointer"
+                  <ChevronDown className="h-3 w-3 text-muted-foreground opacity-50 hidden md:block" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                className="w-56 mt-2 rounded-2xl shadow-xl border-border/60 p-1"
+                align="end"
               >
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Keluar</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <DropdownMenuLabel className="font-normal p-3 bg-muted/30 rounded-xl mb-1">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-semibold leading-none text-foreground">
+                      {user?.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground break-all">
+                      @{user?.username}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+
+                <DropdownMenuItem
+                  onClick={handleOpenProfile}
+                  className="cursor-pointer rounded-xl py-2.5 px-3 font-medium transition-colors hover:bg-muted"
+                >
+                  <UserIcon className="mr-2 h-4 w-4 text-muted-foreground" />{" "}
+                  Edit Profil Saya
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator className="my-1 bg-border/50" />
+
+                <DropdownMenuItem
+                  onClick={logout}
+                  className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer rounded-xl py-2.5 px-3 font-medium transition-colors"
+                >
+                  <LogOut className="mr-2 h-4 w-4" /> Keluar
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      {/* Dialog Edit Profil */}
+      <UserFormDialog
+        open={isProfileOpen}
+        onOpenChange={setIsProfileOpen}
+        editingUser={user}
+        formData={formData}
+        onFormChange={setFormData}
+        onSubmit={handleSaveProfile}
+        loading={isSaving}
+        isSuperAdmin={false}
+        disableRole={true}
+      />
+    </>
   );
 }

@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Table,
   TableBody,
@@ -15,9 +17,17 @@ import {
   ShieldCheck,
   User as UserIcon,
   ShieldAlert,
+  MoreHorizontal,
 } from "lucide-react";
 import { User } from "@/types";
 import { formatUserDate, getUserId } from "@/lib/userHelpers";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface UserTableProps {
   users: User[];
@@ -34,26 +44,30 @@ export function UserTable({
   loading = false,
   readOnly = false,
 }: UserTableProps) {
+  // Style Badge ala Google Chips (Pastel background, dark text)
   const getRoleBadge = (role: string) => {
     switch (role) {
       case "superadmin":
         return (
-          <Badge className="bg-red-600 hover:bg-red-700 border-red-600">
-            <ShieldAlert className="mr-1.5 h-3.5 w-3.5" />
-            SUPER ADMIN
+          <Badge className="bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 shadow-none font-medium px-2 py-0.5 rounded-full">
+            <ShieldAlert className="mr-1.5 h-3 w-3" />
+            Super Admin
           </Badge>
         );
       case "admin":
         return (
-          <Badge className="bg-blue-600 hover:bg-blue-700 border-blue-600">
-            <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
+          <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 shadow-none font-medium px-2 py-0.5 rounded-full">
+            <ShieldCheck className="mr-1.5 h-3 w-3" />
             Admin
           </Badge>
         );
       default:
         return (
-          <Badge variant="secondary" className="bg-slate-200 text-slate-700">
-            <UserIcon className="mr-1.5 h-3.5 w-3.5" />
+          <Badge
+            variant="outline"
+            className="bg-slate-50 text-slate-600 border-slate-200 shadow-none font-medium px-2 py-0.5 rounded-full"
+          >
+            <UserIcon className="mr-1.5 h-3 w-3" />
             Staff
           </Badge>
         );
@@ -70,24 +84,32 @@ export function UserTable({
   };
 
   return (
-    <div className="rounded-md border bg-card shadow-sm">
+    <div className="rounded-2xl border border-border/40 bg-card shadow-sm overflow-hidden">
       <Table>
-        <TableHeader className="bg-muted/50">
-          <TableRow>
-            <TableHead className="w-[50px] text-center">No</TableHead>
-            <TableHead className="w-[60px]">Foto</TableHead>
-            <TableHead>Nama Lengkap</TableHead>
-            <TableHead>Username</TableHead>
-            <TableHead>Role / Jabatan</TableHead>
-            <TableHead>Tanggal Dibuat</TableHead>
-            <TableHead className="text-right">Aksi</TableHead>
+        <TableHeader className="bg-muted/30">
+          <TableRow className="hover:bg-transparent border-b border-border/40">
+            <TableHead className="w-[50px] pl-6 font-semibold text-muted-foreground">
+              #
+            </TableHead>
+            <TableHead className="font-semibold text-muted-foreground">
+              User
+            </TableHead>
+            <TableHead className="font-semibold text-muted-foreground">
+              Role
+            </TableHead>
+            <TableHead className="font-semibold text-muted-foreground">
+              Tanggal Dibuat
+            </TableHead>
+            <TableHead className="text-right pr-6 font-semibold text-muted-foreground">
+              Aksi
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {users.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={7}
+                colSpan={5}
                 className="h-32 text-center text-muted-foreground"
               >
                 Tidak ada data user.
@@ -99,59 +121,76 @@ export function UserTable({
               if (!userId) return null;
 
               return (
-                <TableRow key={userId} className="hover:bg-muted/5">
-                  <TableCell className="text-center text-muted-foreground">
+                <TableRow
+                  key={userId}
+                  className="group hover:bg-muted/40 transition-colors border-b border-border/40 last:border-0"
+                >
+                  <TableCell className="pl-6 text-muted-foreground font-medium text-xs">
                     {index + 1}
                   </TableCell>
+
                   <TableCell>
-                    <Avatar className="h-9 w-9 border">
-                      <AvatarImage src={user.photo_url || ""} alt={user.name} />
-                      <AvatarFallback className="bg-primary/5 text-primary text-xs font-bold">
-                        {getInitials(user.name)}
-                      </AvatarFallback>
-                    </Avatar>
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-9 w-9 border border-border">
+                        <AvatarImage
+                          src={user.photo_url || ""}
+                          alt={user.name}
+                        />
+                        <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                          {getInitials(user.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-foreground">
+                          {user.name}
+                        </span>
+                        <span className="text-xs text-muted-foreground font-normal">
+                          @{user.username}
+                        </span>
+                      </div>
+                    </div>
                   </TableCell>
-                  <TableCell className="font-medium text-foreground">
-                    {user.name}
-                  </TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">
-                    @{user.username}
-                  </TableCell>
+
                   <TableCell>{getRoleBadge(user.role)}</TableCell>
+
                   <TableCell className="text-sm text-muted-foreground">
                     {formatUserDate(user)}
                   </TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onEdit(user)}
-                        disabled={loading || readOnly}
-                        className={
-                          readOnly
-                            ? "opacity-30 cursor-not-allowed"
-                            : "hover:bg-blue-50 hover:text-blue-600"
-                        }
-                        title={readOnly ? "Hanya Super Admin" : "Edit User"}
+
+                  <TableCell className="text-right pr-6">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          disabled={loading || readOnly}
+                          className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <span className="sr-only">Menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        align="end"
+                        className="w-40 rounded-xl shadow-lg border-border/60"
                       >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onDelete(user)}
-                        disabled={loading || readOnly}
-                        className={
-                          readOnly
-                            ? "opacity-30 cursor-not-allowed"
-                            : "hover:bg-red-50 hover:text-red-600"
-                        }
-                        title={readOnly ? "Hanya Super Admin" : "Hapus User"}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+                          Tindakan
+                        </DropdownMenuLabel>
+                        <DropdownMenuItem
+                          onClick={() => onEdit(user)}
+                          className="gap-2 cursor-pointer rounded-lg focus:bg-primary/10 focus:text-primary"
+                        >
+                          <Edit className="h-3.5 w-3.5" /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => onDelete(user)}
+                          className="gap-2 cursor-pointer rounded-lg text-red-600 focus:text-red-600 focus:bg-red-50"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" /> Hapus
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               );

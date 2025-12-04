@@ -5,7 +5,7 @@ import { documentAPI, documentStaffAPI } from "@/lib/api";
 import { Document, DocumentStaff } from "@/types";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Upload, FileText, Filter, Archive, Users } from "lucide-react";
+import { Upload, Archive, Users, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { DocumentTable } from "@/components/documents/DocumentTable";
@@ -25,18 +25,15 @@ import { DocumentFilter } from "@/components/documents/DocumentFilter";
 
 export default function DocumentsPage() {
   const { user, isAdmin } = useAuth();
-
   const [activeTab, setActiveTab] = useState<"official" | "staff">("official");
-
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [year, setYear] = useState("all");
   const [month, setMonth] = useState("all");
-
-  const [docToDelete, setDocToDelete] = useState<Document | null>(null);
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [docToDelete, setDocToDelete] = useState<Document | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchTerm), 500);
@@ -44,26 +41,19 @@ export default function DocumentsPage() {
   }, [searchTerm]);
 
   useEffect(() => {
-    if (isAdmin) {
-      setActiveTab("official");
-    }
+    if (isAdmin) setActiveTab("official");
   }, [user, isAdmin]);
 
   useEffect(() => {
-    if (user || isAdmin) {
-      fetchDocuments();
-    }
+    if (user || isAdmin) fetchDocuments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, user, isAdmin, activeTab, year, month]); // Tambahkan year & month ke dependency
+  }, [debouncedSearch, user, isAdmin, activeTab, year, month]);
 
   const fetchDocuments = async () => {
     setLoading(true);
     try {
       const params: { search?: string } = {};
-
-      if (debouncedSearch) {
-        params.search = debouncedSearch;
-      }
+      if (debouncedSearch) params.search = debouncedSearch;
 
       let allDocs: Document[] = [];
 
@@ -78,49 +68,29 @@ export default function DocumentsPage() {
           const staffResponse = await documentStaffAPI.getAll(params);
           allDocs = (staffResponse.documents || []).map(
             (doc: DocumentStaff) =>
-              ({
-                ...doc,
-                source: "staff",
-              } as unknown as Document)
+              ({ ...doc, source: "staff" } as unknown as Document)
           );
         }
       } else {
-        if (!user) {
-          setDocuments([]);
-          return;
-        }
         const response = await documentStaffAPI.getAll(params);
-        let docs = response.documents || [];
-        const currentUserId = user.ID || user.id;
-        if (currentUserId) {
-          docs = docs.filter(
-            (doc) => String(doc.user_id) === String(currentUserId)
-          );
-        }
-        allDocs = docs.map((doc: DocumentStaff) => ({
-          ...doc,
-          source: "staff",
-        })) as unknown as Document[];
+        allDocs = (response.documents || []).map(
+          (doc) => ({ ...doc, source: "staff" } as unknown as Document)
+        );
       }
 
       if (year !== "all" || month !== "all") {
         allDocs = allDocs.filter((doc) => {
           const docDate = new Date(doc.created_at);
-
           const matchYear =
             year === "all" || docDate.getFullYear().toString() === year;
           const matchMonth =
             month === "all" || (docDate.getMonth() + 1).toString() === month;
-
           return matchYear && matchMonth;
         });
       }
-
       setDocuments(allDocs);
     } catch (error) {
-      console.error("Error fetching documents:", error);
       toast.error("Gagal memuat dokumen");
-      setDocuments([]);
     } finally {
       setLoading(false);
     }
@@ -137,11 +107,9 @@ export default function DocumentsPage() {
       } else {
         await documentAPI.delete(docToDelete.id);
       }
-
       toast.success("Dokumen berhasil dihapus");
       fetchDocuments();
     } catch (error) {
-      console.error("Error deleting document:", error);
       toast.error("Gagal menghapus dokumen");
     } finally {
       setDocToDelete(null);
@@ -155,15 +123,13 @@ export default function DocumentsPage() {
         toast.success("Membuka file...");
         return;
       }
-
       if (doc.source === "staff" || doc.source === "document_staff") {
         await documentStaffAPI.download(doc.id);
       } else {
         await documentAPI.download(doc.id);
       }
-      toast.success("Mengunduh file...");
+      toast.success("Mengunduh...");
     } catch (error) {
-      console.error("Download error:", error);
       toast.error("Gagal membuka file");
     }
   };
@@ -181,63 +147,57 @@ export default function DocumentsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
             {isAdmin
               ? activeTab === "official"
                 ? "Arsip Dinas"
                 : "Monitoring Staff"
               : "Arsip Dokumen"}
           </h1>
-          <p className="text-muted-foreground mt-2">
+          <p className="text-muted-foreground text-sm mt-1">
             {isAdmin
-              ? activeTab === "official"
-                ? "Kelola surat masuk dan keluar"
-                : "Pantau dokumen yang diupload staff"
-              : "Kelola dokumen surat staff"}
+              ? "Kelola dan pantau semua dokumen dalam sistem."
+              : "Daftar dokumen dinas."}
           </p>
         </div>
 
         {isAdmin && activeTab === "official" && (
           <Link href="/dashboard/documents/upload">
-            <Button>
-              <Upload className="mr-2 h-4 w-4" />
-              Upload Surat Dinas
+            <Button className="rounded-full shadow-lg shadow-primary/20 px-6 h-11">
+              <Upload className="mr-2 h-4 w-4" /> Upload Surat
             </Button>
           </Link>
         )}
       </div>
 
       {isAdmin && (
-        <div className="flex p-1 bg-muted/50 rounded-lg w-full sm:w-fit border mb-4">
+        <div className="bg-muted/30 p-1.5 rounded-xl w-full sm:w-fit border border-border/50 flex gap-1">
           <button
             onClick={() => setActiveTab("official")}
-            className={`flex-1 sm:flex-none px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center justify-center gap-2 ${
+            className={`flex-1 sm:flex-none px-5 py-2 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${
               activeTab === "official"
-                ? "bg-background text-foreground shadow-sm ring-1 ring-black/5"
-                : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                ? "bg-background text-foreground shadow-sm ring-1 ring-border/50 font-semibold"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
             }`}
           >
-            <Archive className="h-4 w-4" />
-            Arsip Dinas
+            <Archive className="h-4 w-4" /> Arsip Dinas
           </button>
           <button
             onClick={() => setActiveTab("staff")}
-            className={`flex-1 sm:flex-none px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center justify-center gap-2 ${
+            className={`flex-1 sm:flex-none px-5 py-2 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${
               activeTab === "staff"
-                ? "bg-background text-blue-600 shadow-sm ring-1 ring-black/5"
-                : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                ? "bg-background text-primary shadow-sm ring-1 ring-border/50 font-semibold"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
             }`}
           >
-            <Users className="h-4 w-4" />
-            Monitoring Staff
+            <Users className="h-4 w-4" /> Monitoring Staff
           </button>
         </div>
       )}
 
-      {/* Filter Component */}
       <DocumentFilter
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
@@ -247,45 +207,41 @@ export default function DocumentsPage() {
         setMonth={setMonth}
       />
 
-      <Card>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-            </div>
-          ) : documents.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <FileText className="mx-auto h-12 w-12 mb-4 opacity-50" />
-              <p>Tidak ada dokumen ditemukan</p>
-              <p className="text-sm mt-2">
-                Coba ubah filter pencarian atau tahun/bulan.
-              </p>
-            </div>
-          ) : (
-            <div>
-              <DocumentTable
-                documents={documents}
-                isAdmin={isAdmin}
-                formatDate={formatDate}
-                onDownload={handleDownload}
-                onDeleteClick={setDocToDelete}
-                isMyDocumentPage={!isAdmin}
-                showSourceColumn={activeTab === "staff"}
-              />
-
-              <DocumentListMobile
-                documents={documents}
-                isAdmin={isAdmin}
-                formatDate={formatDate}
-                onDownload={handleDownload}
-                onDeleteClick={setDocToDelete}
-                isMyDocumentPage={!isAdmin}
-                showSourceBadge={isAdmin}
-              />
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {loading ? (
+        <div className="py-20 text-center">
+          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Memuat dokumen...</p>
+        </div>
+      ) : documents.length === 0 ? (
+        <div className="text-center py-16 border-2 border-dashed border-border/60 rounded-2xl bg-muted/5">
+          <FileText className="mx-auto h-12 w-12 text-muted-foreground/30 mb-3" />
+          <p className="font-medium text-foreground">Tidak ada dokumen</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Belum ada data yang sesuai filter Anda.
+          </p>
+        </div>
+      ) : (
+        <>
+          <DocumentTable
+            documents={documents}
+            isAdmin={isAdmin}
+            formatDate={formatDate}
+            onDownload={handleDownload}
+            onDeleteClick={setDocToDelete}
+            isMyDocumentPage={!isAdmin}
+            showSourceColumn={activeTab === "staff"}
+          />
+          <DocumentListMobile
+            documents={documents}
+            isAdmin={isAdmin}
+            formatDate={formatDate}
+            onDownload={handleDownload}
+            onDeleteClick={setDocToDelete}
+            isMyDocumentPage={!isAdmin}
+            showSourceBadge={isAdmin}
+          />
+        </>
+      )}
 
       <AlertDialog
         open={!!docToDelete}
@@ -293,21 +249,21 @@ export default function DocumentsPage() {
           if (!open) setDocToDelete(null);
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Anda yakin ingin menghapus?</AlertDialogTitle>
+            <AlertDialogTitle>Hapus Dokumen?</AlertDialogTitle>
             <AlertDialogDescription>
-              Tindakan ini tidak dapat dibatalkan. Dokumen &quot;
-              {docToDelete?.subject}&quot; akan dihapus secara permanen dari
-              {docToDelete?.source === "staff"
-                ? " arsip staff."
-                : " arsip dinas."}
+              Dokumen{" "}
+              <span className="font-bold text-foreground">
+                {docToDelete?.subject}
+              </span>{" "}
+              akan dihapus permanen.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-lg">Batal</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive hover:bg-destructive/90"
+              className="bg-destructive hover:bg-destructive/90 rounded-lg"
               onClick={executeDelete}
             >
               Ya, Hapus

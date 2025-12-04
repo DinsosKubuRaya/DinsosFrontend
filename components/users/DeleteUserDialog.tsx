@@ -1,3 +1,5 @@
+"use client";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -9,12 +11,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { User } from "@/types";
-import { AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 
 interface DeleteUserDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  user: User | null;
+  userToDelete: User | null;
   onConfirm: () => void;
   loading?: boolean;
 }
@@ -22,33 +25,43 @@ interface DeleteUserDialogProps {
 export function DeleteUserDialog({
   open,
   onOpenChange,
-  user,
+  userToDelete,
   onConfirm,
   loading = false,
 }: DeleteUserDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+      <AlertDialogContent className="rounded-2xl max-w-md">
         <AlertDialogHeader>
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-destructive" />
-            <AlertDialogTitle>Hapus User</AlertDialogTitle>
-          </div>
+          <AlertDialogTitle>Hapus Pengguna?</AlertDialogTitle>
           <AlertDialogDescription>
             Apakah Anda yakin ingin menghapus user{" "}
-            <span className="font-semibold text-foreground">{user?.name}</span>{" "}
-            (@{user?.username})? Tindakan ini tidak dapat dibatalkan.
+            <span className="font-bold text-foreground">
+              {userToDelete?.name}
+            </span>
+            ? Tindakan ini tidak dapat dibatalkan dan semua data terkait user
+            ini akan hilang.
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={loading}>Batal</AlertDialogCancel>
-          <AlertDialogAction
+        <AlertDialogFooter className="gap-2 sm:gap-0">
+          <AlertDialogCancel disabled={loading} className="rounded-lg mt-0">
+            Batal
+          </AlertDialogCancel>
+          <Button
+            variant="destructive"
             onClick={onConfirm}
             disabled={loading}
-            className="bg-destructive hover:bg-destructive/90"
+            className="rounded-lg bg-red-600 hover:bg-red-700"
           >
-            {loading ? "Menghapus..." : "Hapus"}
-          </AlertDialogAction>
+            {loading ? (
+              <>
+                <Spinner className="mr-2 h-4 w-4" />
+                Menghapus...
+              </>
+            ) : (
+              "Ya, Hapus Permanen"
+            )}
+          </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

@@ -1,36 +1,32 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
 import { documentStaffAPI, getErrorMessage } from "@/lib/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Upload as UploadIcon } from "lucide-react";
-import { DocumentUploadForm } from "@/components/documents/DocumentUploadForm";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
+import { DocumentUploadForm } from "@/components/documents/DocumentUploadForm";
+import { useState } from "react";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 
-export default function UploadDocumentStaffPage() {
-  const [loading, setLoading] = useState(false);
-  const { user } = useAuth();
+export default function MyDocumentUploadPage() {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
 
   const handleUpload = async (formData: FormData) => {
-    if (!user) return;
     setLoading(true);
     try {
-      const response = await documentStaffAPI.create(formData);
-
-      toast.success("Dokumen berhasil diupload!", {
-        description: response.message || "File telah tersimpan di arsip anda",
-      });
-
-      setTimeout(() => router.push("/dashboard/my-document"), 1500);
-    } catch (error: unknown) {
-      console.error("Upload Error:", error);
-      toast.error("Gagal mengupload dokumen", {
+      await documentStaffAPI.create(formData);
+      toast.success("Dokumen berhasil disimpan");
+      router.push("/dashboard/my-document");
+    } catch (error) {
+      toast.error("Gagal menyimpan dokumen", {
         description: getErrorMessage(error),
       });
     } finally {
@@ -38,40 +34,26 @@ export default function UploadDocumentStaffPage() {
     }
   };
 
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Spinner />
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/dashboard/my-document">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Upload Dokumen (Staff)
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Upload dokumen baru ke Arsip Pribadi
-          </p>
-        </div>
-      </div>
+    <div className="max-w-3xl mx-auto space-y-6">
+      <Button
+        variant="ghost"
+        onClick={() => router.back()}
+        className="pl-0 hover:bg-transparent hover:text-primary gap-2"
+      >
+        <ArrowLeft className="h-4 w-4" /> Kembali
+      </Button>
 
-      <Card className="max-w-2xl">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <UploadIcon className="h-5 w-5" />
-            Form Upload Dokumen
+      <Card className="rounded-2xl shadow-sm border-border/60 overflow-hidden">
+        <CardHeader className="border-b border-border/40 bg-muted/20 px-8 py-6">
+          <CardTitle className="text-xl font-bold">
+            Upload Dokumen Saya
           </CardTitle>
+          <CardDescription>
+            Simpan dokumen pribadi ke arsip Anda.
+          </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-8">
           <DocumentUploadForm
             onSubmit={handleUpload}
             loading={loading}

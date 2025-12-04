@@ -23,7 +23,7 @@ import {
   Trash,
   Eye,
   Edit,
-  User,
+  User as UserIcon,
   Image as ImageIcon,
   File,
 } from "lucide-react";
@@ -74,89 +74,93 @@ export function DocumentTable({
     }
   };
 
-  // ✅ FIX: Ganti 'any' dengan tipe yang benar
   const isOfficialDoc = (doc: Document | DocumentStaff): doc is Document => {
     return doc.source === "document";
   };
 
   return (
-    <div className="rounded-md border bg-background hidden md:block">
+    <div className="rounded-2xl border border-border/50 bg-card shadow-sm overflow-hidden">
       <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[350px]">Detail Dokumen</TableHead>
-            <TableHead>Kategori & Format</TableHead>
-            <TableHead>Pemilik / User</TableHead>
-            <TableHead>Tanggal</TableHead>
-            <TableHead className="text-right">Aksi</TableHead>
+        <TableHeader className="bg-muted/40">
+          <TableRow className="hover:bg-transparent border-b border-border/50">
+            <TableHead className="w-[350px] pl-6 font-semibold">
+              Detail Dokumen
+            </TableHead>
+            <TableHead className="font-semibold">Kategori</TableHead>
+            <TableHead className="font-semibold">Pemilik</TableHead>
+            <TableHead className="font-semibold">Tanggal</TableHead>
+            <TableHead className="text-right pr-6 font-semibold">
+              Aksi
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {documents.map((doc) => (
-            <TableRow key={doc.id}>
-              {/* KOLOM 1: JUDUL, FILE */}
-              <TableCell className="align-top py-4">
-                <div className="flex flex-col gap-1">
-                  <span className="font-semibold text-sm leading-tight text-foreground/90">
-                    {doc.subject}
-                  </span>
-
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 w-fit px-1.5 py-0.5 rounded">
-                    <FileText className="h-3 w-3" />
-                    <span
-                      className="truncate max-w-[200px]"
-                      title={doc.file_name}
-                    >
-                      {doc.file_name}
-                    </span>
+            <TableRow
+              key={doc.id}
+              className="group hover:bg-muted/30 transition-colors border-b border-border/40 last:border-0 cursor-default"
+            >
+              {/* Kolom 1: Detail */}
+              <TableCell className="pl-6 py-4 align-top">
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`p-2 rounded-lg mt-0.5 ${
+                      doc.resource_type === "image"
+                        ? "bg-purple-50 text-purple-600"
+                        : "bg-blue-50 text-blue-600"
+                    }`}
+                  >
+                    {doc.resource_type === "image" ? (
+                      <ImageIcon className="h-4 w-4" />
+                    ) : (
+                      <File className="h-4 w-4" />
+                    )}
                   </div>
-
-                  {/* Cek Sender hanya jika Official Doc */}
-                  {isOfficialDoc(doc) && doc.sender && (
-                    <div className="text-xs text-blue-600 font-medium mt-1">
-                      Dari: {doc.sender}
+                  <div className="flex flex-col gap-1">
+                    <span className="font-semibold text-foreground text-sm leading-snug group-hover:text-primary transition-colors">
+                      {doc.subject}
+                    </span>
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <span className="bg-muted px-1.5 py-0.5 rounded truncate max-w-[150px]">
+                        {doc.file_name}
+                      </span>
                     </div>
-                  )}
+                    {isOfficialDoc(doc) && doc.sender && (
+                      <span className="text-[11px] text-primary/80 font-medium mt-0.5">
+                        Dari: {doc.sender}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </TableCell>
 
-              {/* KOLOM 2: TIPE & FORMAT */}
+              {/* Kolom 2: Kategori */}
               <TableCell className="align-top py-4">
-                <div className="flex flex-col gap-2 items-start">
-                  {/* Badge Letter Type - Hanya Official Doc */}
+                <div className="flex flex-col gap-1.5 items-start">
                   {isOfficialDoc(doc) && doc.letter_type && (
                     <Badge
                       variant={
-                        doc.letter_type === "masuk" ? "default" : "secondary"
+                        doc.letter_type === "masuk" ? "secondary" : "outline"
                       }
-                      className="capitalize"
+                      className="capitalize font-medium shadow-none"
                     >
                       {doc.letter_type}
                     </Badge>
                   )}
-
-                  <Badge
-                    variant="outline"
-                    className="text-[10px] gap-1 px-2 h-5"
-                  >
-                    {doc.resource_type === "image" ? (
-                      <ImageIcon className="h-3 w-3" />
-                    ) : (
-                      <File className="h-3 w-3" />
-                    )}
-                    {doc.resource_type === "image" ? "Gambar" : "Dokumen"}
-                  </Badge>
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wide px-1">
+                    {doc.resource_type}
+                  </span>
                 </div>
               </TableCell>
 
-              {/* KOLOM 3: USER */}
+              {/* Kolom 3: Pemilik */}
               <TableCell className="align-top py-4">
-                <div className="flex items-center gap-2">
-                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                    <User className="h-4 w-4" />
+                <div className="flex items-center gap-2.5">
+                  <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground border border-border">
+                    <UserIcon className="h-4 w-4" />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-sm font-medium">
+                    <span className="text-sm font-medium text-foreground">
                       {doc.user?.name || "User"}
                     </span>
                     <span className="text-[10px] text-muted-foreground capitalize">
@@ -167,22 +171,31 @@ export function DocumentTable({
                 </div>
               </TableCell>
 
-              {/* KOLOM 4: TANGGAL */}
-              <TableCell className="align-top py-4 text-sm">
+              {/* Kolom 4: Tanggal */}
+              <TableCell className="align-top py-4 text-sm text-muted-foreground">
                 {formatDate(doc.created_at)}
               </TableCell>
 
-              {/* KOLOM 5: AKSI */}
-              <TableCell className="text-right align-top py-4">
+              {/* Kolom 5: Aksi */}
+              <TableCell className="text-right pr-6 align-top py-4">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                      <span className="sr-only">Open menu</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
+                    >
+                      <span className="sr-only">Menu</span>
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Aksi</DropdownMenuLabel>
+                  <DropdownMenuContent
+                    align="end"
+                    className="w-48 rounded-xl shadow-lg border-border/60"
+                  >
+                    <DropdownMenuLabel className="text-xs font-normal text-muted-foreground ml-1">
+                      Aksi Dokumen
+                    </DropdownMenuLabel>
 
                     <DropdownMenuItem
                       onClick={() => {
@@ -194,20 +207,24 @@ export function DocumentTable({
                           : `/dashboard/documents`;
                         router.push(`${basePath}/${doc.id}${sourceParam}`);
                       }}
+                      className="gap-2 cursor-pointer rounded-lg focus:bg-primary/5 focus:text-primary"
                     >
-                      <Eye className="mr-2 h-4 w-4" /> Detail
+                      <Eye className="h-4 w-4" /> Detail
                     </DropdownMenuItem>
 
                     <DropdownMenuItem
                       onClick={() => handleDownload(doc)}
                       disabled={downloading === doc.id}
+                      className="gap-2 cursor-pointer rounded-lg focus:bg-primary/5 focus:text-primary"
                     >
-                      <Download className="mr-2 h-4 w-4" />
+                      <Download className="h-4 w-4" />
                       {downloading === doc.id ? "Mengunduh..." : "Unduh"}
                     </DropdownMenuItem>
 
+                    {/* Menu Edit & Hapus (Hanya jika berhak) */}
                     {(!isOfficialDoc(doc) || isAdmin) && (
                       <>
+                        <div className="h-px bg-border/50 my-1" />
                         <DropdownMenuItem
                           onClick={() => {
                             if (isAdmin) {
@@ -223,15 +240,16 @@ export function DocumentTable({
                               );
                             }
                           }}
+                          className="gap-2 cursor-pointer rounded-lg focus:bg-primary/5 focus:text-primary"
                         >
-                          <Edit className="mr-2 h-4 w-4" /> Edit
+                          <Edit className="h-4 w-4" /> Edit
                         </DropdownMenuItem>
 
                         <DropdownMenuItem
-                          className="text-red-600 focus:text-red-600"
+                          className="gap-2 cursor-pointer rounded-lg text-destructive focus:text-destructive focus:bg-destructive/10"
                           onClick={() => onDeleteClick && onDeleteClick(doc)}
                         >
-                          <Trash className="mr-2 h-4 w-4" /> Hapus
+                          <Trash className="h-4 w-4" /> Hapus
                         </DropdownMenuItem>
                       </>
                     )}

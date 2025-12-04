@@ -142,9 +142,6 @@ export const documentAPI = {
   },
 
   update: async (id: string | number, data: DocumentUpdateData) => {
-    // Backend Document (Admin) menggunakan ShouldBindJSON, jadi JSON harus digunakan jika tidak ada file
-    // Namun jika ada file, backend Admin harus support Multipart (biasanya logic terpisah)
-    // Sesuai kode Anda sebelumnya, ini dibiarkan (logic mixed)
     
     if (!data.file) {
       const jsonPayload = {
@@ -225,16 +222,12 @@ export const documentStaffAPI = {
     return response.data;
   },
   
-  // ✅ FIX: SELALU GUNAKAN FORMDATA UNTUK UPDATE DOCUMENT STAFF
-  // Karena backend DocumentStaffController.UpdateDocumentStaff menggunakan c.PostForm()
-  // yang TIDAK bisa membaca JSON.
+
   update: async (id: string | number, data: DocumentUpdateData) => {
     const formData = new FormData();
     
-    // Backend hanya membaca 'subject' dari PostForm
     formData.append("subject", data.subject);
     
-    // Kirim file hanya jika ada
     if (data.file) {
       formData.append("file", data.file);
     }
@@ -296,8 +289,18 @@ export const userAPI = {
     return response.data.user;
   },
 
-  update: async (id: string | number, data: UpdateUserData) => {
-    const response = await api.put<{ user: User }>(`/users/${id}`, data);
+  update: async (id: string | number, data: UpdateUserData | FormData) => {
+    if (data instanceof FormData) {
+        const response = await api.put<{ user: User }>(`/users/${id}`, data);
+        return response.data.user;
+    }
+    const formData = new FormData();
+    if (data.name) formData.append("name", data.name);
+    if (data.username) formData.append("username", data.username);
+    if (data.role) formData.append("role", data.role);
+    if (data.password) formData.append("new_password", data.password);
+
+    const response = await api.put<{ user: User }>(`/users/${id}`, formData);
     return response.data.user;
   },
 
