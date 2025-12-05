@@ -22,7 +22,6 @@ import { Spinner } from "@/components/ui/spinner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Camera } from "lucide-react";
 import { User } from "@/types";
-import { toast } from "sonner";
 
 export type UserRole = "admin" | "staff" | "superadmin";
 
@@ -73,7 +72,7 @@ export function UserFormDialog({
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        toast.error("Ukuran file terlalu besar. Maksimal 5MB.");
+        alert("Ukuran file maksimal 5MB");
         return;
       }
       setPhotoFile(file);
@@ -110,7 +109,7 @@ export function UserFormDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* FOTO PROFIL */}
+          {/* FOTO PROFIL (Hanya saat Edit) */}
           {editingUser && (
             <div className="flex flex-col items-center gap-3 mb-2">
               <div
@@ -201,17 +200,18 @@ export function UserFormDialog({
             />
           </div>
 
-          {/* ================================================================
-            CHANGE ROLE FITUR NEED IMPLEMENTATION AT BACKEND
-            ================================================================
+          {/* ✅ LOGIC ROLE: 
+              Hanya tampil jika:
+              1. Mode CREATE User (!editingUser)
+              2. DAN disableRole tidak diaktifkan
+              
+              Saat Edit, backend tidak support ganti role, jadi kita sembunyikan total.
           */}
-
-          {/* {!disableRole && (
+          {!editingUser && !disableRole && (
             <div className="space-y-1.5">
               <Label htmlFor="role">Role / Jabatan</Label>
               <Select
                 value={formData.role}
-                // Fix: Casting tipe data agar tidak error merah di typescript
                 onValueChange={(value: string) =>
                   onFormChange({ ...formData, role: value as UserRole })
                 }
@@ -223,16 +223,19 @@ export function UserFormDialog({
                 <SelectContent className="rounded-xl">
                   <SelectItem value="staff">Staff (Pegawai)</SelectItem>
                   <SelectItem value="admin">Admin (Administrator)</SelectItem>
+                  {/* Superadmin hanya bisa dipilih jika yang login adalah Superadmin */}
                   {isSuperAdmin && (
-                    <SelectItem value="superadmin" className="text-red-600 font-medium">
+                    <SelectItem
+                      value="superadmin"
+                      className="text-red-600 font-medium"
+                    >
                       Superadmin (Akses Penuh)
                     </SelectItem>
                   )}
                 </SelectContent>
               </Select>
             </div>
-          )} 
-          */}
+          )}
 
           <div className="flex flex-col-reverse sm:flex-row gap-2 pt-4">
             <Button

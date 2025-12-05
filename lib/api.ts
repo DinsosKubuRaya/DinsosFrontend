@@ -332,11 +332,12 @@ export const notificationAPI = {
 
 // --- ACTIVITY LOG API ---
 export const activityLogAPI = {
-  getAll: async () => {
+  getAll: async (page = 1, limit = 10) => {
     const response = await api.get<{ data: ActivityLog[]; total: number }>(
-      "/activity-logs"
+      "/activity-logs", 
+      { params: { page, limit } } 
     );
-    return response.data.data;
+    return response.data;
   },
 };
 
