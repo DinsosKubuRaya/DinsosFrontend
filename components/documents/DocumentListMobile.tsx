@@ -88,7 +88,7 @@ export function DocumentListMobile({
                     <h3 className="font-semibold text-sm line-clamp-2 leading-tight">
                       {doc.subject}
                     </h3>
-                    <p className="text-xs text-muted-foreground mt-1 truncate max-w-[200px]">
+                    <p className="text-xs text-muted-foreground mt-1 truncate max-w-[160px] sm:max-w-[220px]">
                       {doc.file_name}
                     </p>
                   </div>
@@ -132,7 +132,7 @@ export function DocumentListMobile({
               <div className="flex items-center justify-between pt-3 border-t border-border/40">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <User className="h-3 w-3" />
-                  <span className="truncate max-w-[120px]">
+                  <span className="truncate max-w-[100px] sm:max-w-[140px]">
                     {doc.user?.name || "User"}
                   </span>
                 </div>

@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { documentAPI, documentStaffAPI } from "@/lib/api";
+import { documentAPI, documentStaffAPI, userAPI } from "@/lib/api";
 import { Document, DocumentStaff } from "@/types";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,16 +21,19 @@ import { useAuth } from "@/context/AuthContext";
 import { DocumentTable } from "@/components/documents/DocumentTable";
 import { DocumentListMobile } from "@/components/documents/DocumentListMobile";
 import { DocumentFilter } from "@/components/documents/DocumentFilter";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function DocumentsPage() {
   const { user, isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState<"official" | "staff">("official");
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState<Array<{ id: string; name: string }>>([]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [year, setYear] = useState("all");
   const [month, setMonth] = useState("all");
+  const [userFilter, setUserFilter] = useState("all");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [docToDelete, setDocToDelete] = useState<Document | null>(null);
 
@@ -44,10 +46,31 @@ export default function DocumentsPage() {
     if (isAdmin) setActiveTab("official");
   }, [user, isAdmin]);
 
+  // Fetch users for filter dropdown
+  useEffect(() => {
+    if (isAdmin && activeTab === "staff") {
+      fetchUsers();
+    }
+  }, [isAdmin, activeTab]);
+
   useEffect(() => {
     if (user || isAdmin) fetchDocuments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, user, isAdmin, activeTab, year, month]);
+  }, [debouncedSearch, user, isAdmin, activeTab, year, month, userFilter]);
+
+  const fetchUsers = async () => {
+    try {
+      const userData = await userAPI.getUsersForFilter();
+      setUsers(
+        userData.map((u) => ({
+          id: u.id || u.ID || "",
+          name: u.name,
+        }))
+      );
+    } catch (error) {
+      console.error("Failed to fetch users for filter:", error);
+    }
+  };
 
   const fetchDocuments = async () => {
     setLoading(true);
@@ -78,14 +101,15 @@ export default function DocumentsPage() {
         );
       }
 
-      if (year !== "all" || month !== "all") {
+      if (year !== "all" || month !== "all" || userFilter !== "all") {
         allDocs = allDocs.filter((doc) => {
           const docDate = new Date(doc.created_at);
           const matchYear =
             year === "all" || docDate.getFullYear().toString() === year;
           const matchMonth =
             month === "all" || (docDate.getMonth() + 1).toString() === month;
-          return matchYear && matchMonth;
+          const matchUser = userFilter === "all" || doc.user_id === userFilter;
+          return matchYear && matchMonth && matchUser;
         });
       }
       setDocuments(allDocs);
@@ -174,28 +198,28 @@ export default function DocumentsPage() {
       </div>
 
       {isAdmin && (
-        <div className="bg-muted/30 p-1.5 rounded-xl w-full sm:w-fit border border-border/50 flex gap-1">
-          <button
-            onClick={() => setActiveTab("official")}
-            className={`flex-1 sm:flex-none px-5 py-2 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${
-              activeTab === "official"
-                ? "bg-background text-foreground shadow-sm ring-1 ring-border/50 font-semibold"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-            }`}
-          >
-            <Archive className="h-4 w-4" /> Arsip Dinas
-          </button>
-          <button
-            onClick={() => setActiveTab("staff")}
-            className={`flex-1 sm:flex-none px-5 py-2 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${
-              activeTab === "staff"
-                ? "bg-background text-primary shadow-sm ring-1 ring-border/50 font-semibold"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-            }`}
-          >
-            <Users className="h-4 w-4" /> Monitoring Staff
-          </button>
-        </div>
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => setActiveTab(value as "official" | "staff")}
+          className="w-full"
+        >
+          <TabsList className="bg-muted/30 p-1.5 rounded-xl w-full sm:w-fit border border-border/50 h-auto">
+            <TabsTrigger
+              value="official"
+              className="px-5 py-2.5 rounded-lg data-[state=active]:shadow-sm"
+            >
+              <Archive className="h-4 w-4" />
+              Arsip Dinas
+            </TabsTrigger>
+            <TabsTrigger
+              value="staff"
+              className="px-5 py-2.5 rounded-lg data-[state=active]:shadow-sm"
+            >
+              <Users className="h-4 w-4" />
+              Monitoring Staff
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       )}
 
       <DocumentFilter
@@ -205,6 +229,10 @@ export default function DocumentsPage() {
         setYear={setYear}
         month={month}
         setMonth={setMonth}
+        userFilter={userFilter}
+        setUserFilter={setUserFilter}
+        users={users}
+        showUserFilter={isAdmin && activeTab === "staff"}
       />
 
       {loading ? (

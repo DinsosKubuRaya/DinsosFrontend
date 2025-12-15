@@ -82,10 +82,10 @@ export function DocumentUploadForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {/* Kolom Kiri: Input Text */}
-        <div className="space-y-5">
+        <div className="space-y-4 sm:space-y-5">
           {/* FIELD PENGIRIM: Hanya Admin */}
           {!isStaff && (
             <div className="space-y-2">
@@ -222,13 +222,13 @@ export function DocumentUploadForm({
         </div>
       </div>
 
-      <div className="flex gap-3 pt-6 border-t border-border/40">
-        <Link href={cancelHref}>
+      <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 pt-4 sm:pt-6 border-t border-border/40">
+        <Link href={cancelHref} className="w-full sm:w-auto">
           <Button
             type="button"
             variant="ghost"
             disabled={loading}
-            className="px-6 text-muted-foreground hover:text-foreground"
+            className="w-full sm:w-auto px-6 text-muted-foreground hover:text-foreground"
           >
             Batal
           </Button>
@@ -236,7 +236,7 @@ export function DocumentUploadForm({
         <Button
           type="submit"
           disabled={loading}
-          className="px-8 rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
+          className="w-full sm:w-auto px-8 rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
         >
           {loading ? (
             <>

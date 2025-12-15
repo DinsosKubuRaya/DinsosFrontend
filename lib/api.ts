@@ -11,7 +11,7 @@ import {
   ApiResponse
 } from "@/types";
 
-// --- INTERFACES ---
+
 interface LoginResponse {
   token: string;
   user: User;
@@ -41,6 +41,8 @@ interface UpdateUserData {
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
+
+// const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://10.10.1.104:8080/api";
 
 export const api = axios.create({
   baseURL: API_URL,
@@ -131,6 +133,14 @@ export const documentAPI = {
     return response.data;
   },
 
+  getSummary: async (year?: number, month?: number) => {
+    const params: { year?: number; month?: number } = {};
+    if (year) params.year = year;
+    if (month) params.month = month;
+    const response = await api.get("/documents/summary", { params });
+    return response.data;
+  },
+
   getById: async (id: string | number) => {
     const response = await api.get<{ document: Document }>(`/documents/${id}`);
     return response.data.document;
@@ -202,6 +212,17 @@ export const documentStaffAPI = {
     letter_type?: string;
   }) => {
     const response = await api.get<DocumentStaffApiResponse>("/document_staff", {
+      params,
+    });
+    return response.data;
+  },
+
+  getPersonal: async (params?: {
+    page?: number;
+    per_page?: number;
+    search?: string;
+  }) => {
+    const response = await api.get<DocumentStaffApiResponse>("/document_staff/personal", {
       params,
     });
     return response.data;

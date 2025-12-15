@@ -79,11 +79,11 @@ export function DocumentTable({
   };
 
   return (
-    <div className="rounded-2xl border border-border/50 bg-card shadow-sm overflow-hidden">
+    <div className="hidden md:block rounded-2xl border border-border/50 bg-card shadow-sm overflow-hidden">
       <Table>
         <TableHeader className="bg-muted/40">
           <TableRow className="hover:bg-transparent border-b border-border/50">
-            <TableHead className="w-[350px] pl-6 font-semibold">
+            <TableHead className="w-full md:w-[350px] lg:w-[400px] pl-6 font-semibold">
               Detail Dokumen
             </TableHead>
             <TableHead className="font-semibold">Kategori</TableHead>
@@ -121,7 +121,7 @@ export function DocumentTable({
                       {doc.subject}
                     </span>
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <span className="bg-muted px-1.5 py-0.5 rounded truncate max-w-[150px]">
+                      <span className="bg-muted px-1.5 py-0.5 rounded truncate max-w-[120px] md:max-w-[150px] lg:max-w-[180px]">
                         {doc.file_name}
                       </span>
                     </div>

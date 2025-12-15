@@ -11,6 +11,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { DocumentTable } from "@/components/documents/DocumentTable";
 import { DocumentListMobile } from "@/components/documents/DocumentListMobile";
+import { DocumentSummaryWidget } from "@/components/documents/DocumentSummaryWidget";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -38,7 +39,6 @@ export default function DashboardPage() {
     (Document | DocumentStaff)[]
   >([]);
 
-  // ✅ State untuk delete confirmation
   const [docToDelete, setDocToDelete] = useState<
     Document | DocumentStaff | null
   >(null);
@@ -273,48 +273,100 @@ export default function DashboardPage() {
         )}
       </div>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5" /> Dokumen Terbaru
-          </CardTitle>
-          <Link
-            href={isAdmin ? "/dashboard/documents" : "/dashboard/my-document"}
-          >
-            <Button variant="outline" size="sm">
-              Lihat Semua
-            </Button>
-          </Link>
-        </CardHeader>
-        <CardContent className="p-0">
-          {recentDocuments.length > 0 ? (
-            <>
-              <DocumentTable
-                documents={recentDocuments as Document[]}
-                isAdmin={isAdmin}
-                formatDate={formatDate}
-                onDownload={handleDownload}
-                onDeleteClick={handleDeleteClick}
-                isMyDocumentPage={!isAdmin}
-                showSourceColumn={isAdmin}
-              />
-              <DocumentListMobile
-                documents={recentDocuments as Document[]}
-                isAdmin={isAdmin}
-                formatDate={formatDate}
-                onDownload={handleDownload}
-                onDeleteClick={handleDeleteClick}
-                isMyDocumentPage={!isAdmin}
-                showSourceBadge={isAdmin}
-              />
-            </>
-          ) : (
-            <div className="p-8 text-center text-muted-foreground">
-              Belum ada aktivitas dokumen.
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Document Summary Widget - Admin Only */}
+      {isAdmin && (
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
+          <div className="lg:col-span-1">
+            <DocumentSummaryWidget />
+          </div>
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5" /> Dokumen Terbaru
+                </CardTitle>
+                <Link href="/dashboard/documents">
+                  <Button variant="outline" size="sm">
+                    Lihat Semua
+                  </Button>
+                </Link>
+              </CardHeader>
+              <CardContent className="p-0">
+                {recentDocuments.length > 0 ? (
+                  <>
+                    <DocumentTable
+                      documents={recentDocuments as Document[]}
+                      isAdmin={isAdmin}
+                      formatDate={formatDate}
+                      onDownload={handleDownload}
+                      onDeleteClick={handleDeleteClick}
+                      isMyDocumentPage={false}
+                      showSourceColumn={false}
+                    />
+                    <DocumentListMobile
+                      documents={recentDocuments as Document[]}
+                      isAdmin={isAdmin}
+                      formatDate={formatDate}
+                      onDownload={handleDownload}
+                      onDeleteClick={handleDeleteClick}
+                      isMyDocumentPage={false}
+                      showSourceBadge={false}
+                    />
+                  </>
+                ) : (
+                  <div className="p-8 text-center text-muted-foreground">
+                    Belum ada aktivitas dokumen.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* Staff Card */}
+      {!isAdmin && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5" /> Dokumen Terbaru
+            </CardTitle>
+            <Link href="/dashboard/my-document">
+              <Button variant="outline" size="sm">
+                Lihat Semua
+              </Button>
+            </Link>
+          </CardHeader>
+          <CardContent className="p-0">
+            {recentDocuments.length > 0 ? (
+              <>
+                <DocumentTable
+                  documents={recentDocuments as Document[]}
+                  isAdmin={isAdmin}
+                  formatDate={formatDate}
+                  onDownload={handleDownload}
+                  onDeleteClick={handleDeleteClick}
+                  isMyDocumentPage={true}
+                  showSourceColumn={false}
+                />
+                <DocumentListMobile
+                  documents={recentDocuments as Document[]}
+                  isAdmin={isAdmin}
+                  formatDate={formatDate}
+                  onDownload={handleDownload}
+                  onDeleteClick={handleDeleteClick}
+                  isMyDocumentPage={true}
+                  showSourceBadge={false}
+                />
+              </>
+            ) : (
+              <div className="p-8 text-center text-muted-foreground">
+                Belum ada aktivitas dokumen.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <AlertDialog
         open={!!docToDelete}

@@ -137,7 +137,7 @@ export default function DocumentDetailPage({
             </div>
             <Button
               onClick={handleDownload}
-              className="rounded-full px-6 shadow-md shadow-primary/20 h-12 text-base"
+              className="rounded-full px-6 shadow-md shadow-primary/20 h-12 text-base w-full md:w-auto"
             >
               <Download className="mr-2 h-5 w-5" /> Unduh File
             </Button>
@@ -179,7 +179,7 @@ export default function DocumentDetailPage({
               <img
                 src={document.file_url}
                 alt="Preview"
-                className="w-full h-auto rounded-xl object-contain max-h-[600px] bg-background"
+                className="w-full h-auto rounded-xl object-contain max-h-[400px] md:max-h-[600px] bg-background"
               />
             ) : (
               <div className="py-16 flex flex-col items-center justify-center text-center gap-4 bg-background rounded-xl">

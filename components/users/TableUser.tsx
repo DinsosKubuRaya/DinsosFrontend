@@ -84,11 +84,11 @@ export function UserTable({
   };
 
   return (
-    <div className="rounded-2xl border border-border/40 bg-card shadow-sm overflow-hidden">
+    <div className="hidden md:block rounded-2xl border border-border/40 bg-card shadow-sm overflow-hidden">
       <Table>
         <TableHeader className="bg-muted/30">
           <TableRow className="hover:bg-transparent border-b border-border/40">
-            <TableHead className="w-[50px] pl-6 font-semibold text-muted-foreground">
+            <TableHead className="w-[40px] md:w-[50px] pl-6 font-semibold text-muted-foreground">
               #
             </TableHead>
             <TableHead className="font-semibold text-muted-foreground">

@@ -146,7 +146,6 @@ export default function DocumentStaffDetailPage() {
     );
   }
 
-  // --- LOGIKA IZIN AKSES ---
   const currentUserId = user ? getUserId(user) : null;
   const docUserId = documentData.user_id ? String(documentData.user_id) : "";
   const isOwner = currentUserId && docUserId === String(currentUserId);
@@ -177,34 +176,36 @@ export default function DocumentStaffDetailPage() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {canEdit && (
             <Button
               variant="outline"
               onClick={() => router.push(`/dashboard/my-document/${id}/edit`)}
               disabled={loading}
+              className="min-h-[44px]"
             >
               <Edit className="mr-2 h-4 w-4" />
               Edit
             </Button>
           )}
 
-          {/* Tombol Preview yang Diperbaiki */}
+          {/* Preview */}
           <Button
             variant="default"
             onClick={handlePreview}
             disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-blue-600 hover:bg-blue-700 min-h-[44px]"
           >
             <Eye className="mr-2 h-4 w-4" />
             Preview
           </Button>
 
-          {/* Tombol Download yang Diperbaiki */}
+          {/*  Download  */}
           <Button
             variant="outline"
             onClick={handleDirectDownload}
             disabled={loading}
+            className="min-h-[44px]"
           >
             <Download className="mr-2 h-4 w-4" />
             Download
@@ -213,7 +214,7 @@ export default function DocumentStaffDetailPage() {
           {canDelete && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" disabled={loading}>
+                <Button variant="destructive" disabled={loading} className="min-h-[44px]">
                   {loading ? (
                     <Spinner className="mr-2 h-4 w-4" />
                   ) : (
@@ -264,7 +265,7 @@ export default function DocumentStaffDetailPage() {
                   </Badge>
                 )}
 
-                {/* Tampilkan Tipe Surat HANYA jika ada (misal dokumen Admin) */}
+                {/* Tipe Surat admin */}
                 {documentData.letter_type && (
                   <Badge
                     variant={
@@ -291,7 +292,7 @@ export default function DocumentStaffDetailPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* KOLOM KIRI */}
               <div className="space-y-4">
-                {/* Pengirim: Hanya tampil jika data ada (Admin Doc) */}
+                {/* Pengirim admin */}
                 {documentData.sender && (
                   <div className="flex items-start gap-3">
                     <SendIcon className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />

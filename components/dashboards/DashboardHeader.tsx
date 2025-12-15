@@ -130,7 +130,7 @@ export function DashboardHeader({
                 alt="Logo"
                 width={150}
                 height={40}
-                className="h-10 w-auto object-contain"
+                className="h-8 md:h-10 w-auto object-contain max-w-[120px] sm:max-w-none"
                 priority
               />
             </div>
@@ -164,7 +164,7 @@ export function DashboardHeader({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
-                className="w-56 mt-2 rounded-2xl shadow-xl border-border/60 p-1"
+                className="w-[90vw] max-w-[240px] sm:w-56 mt-2 rounded-2xl shadow-xl border-border/60 p-1"
                 align="end"
               >
                 <DropdownMenuLabel className="font-normal p-3 bg-muted/30 rounded-xl mb-1">

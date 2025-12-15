@@ -21,7 +21,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/context/AuthContext";
-import { getUserId } from "@/lib/userHelpers";
 
 export default function MyDocumentPage() {
   const { user, isAdmin } = useAuth();
@@ -49,18 +48,14 @@ export default function MyDocumentPage() {
     try {
       const params: { search?: string } = {};
       if (search) params.search = search;
+      const response = await documentStaffAPI.getPersonal(params);
 
-      const currentUserId = user ? getUserId(user) : "";
-      const response = await documentStaffAPI.getAll(params);
-
-      let myDocs: Document[] = (response.documents || [])
-        .filter(
-          (doc: DocumentStaff) => String(doc.user_id) === String(currentUserId)
-        )
-        .map((doc: DocumentStaff) => ({
+      let myDocs: Document[] = (response.documents || []).map(
+        (doc: DocumentStaff) => ({
           ...doc,
           source: "document_staff",
-        })) as unknown as Document[];
+        })
+      ) as unknown as Document[];
 
       if (year !== "all" || month !== "all") {
         myDocs = myDocs.filter((doc) => {

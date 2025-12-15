@@ -172,14 +172,14 @@ export default function EditDocumentPage({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
             {/* FILE INFO */}
             <div className="p-4 bg-muted/40 rounded-lg border border-dashed flex items-center justify-between">
               <div className="flex items-center gap-3 overflow-hidden">
                 <FileText className="h-8 w-8 text-primary/70" />
                 <div className="flex flex-col min-w-0">
                   <span
-                    className="text-sm font-medium truncate max-w-[200px]"
+                    className="text-sm font-medium truncate max-w-[180px] sm:max-w-[250px]"
                     title={formData.file_name}
                   >
                     {formData.file_name || "File Lama"}
@@ -195,6 +195,7 @@ export default function EditDocumentPage({
                   variant="outline"
                   size="sm"
                   onClick={() => window.open(formData.file_url, "_blank")}
+                  className="shrink-0"
                 >
                   <Eye className="mr-2 h-3.5 w-3.5" /> Lihat
                 </Button>
@@ -254,7 +255,7 @@ export default function EditDocumentPage({
               </div>
             )}
 
-            <Button type="submit" disabled={loading} className="w-full mt-4">
+            <Button type="submit" disabled={loading} className="w-full mt-4 sm:mt-6">
               {loading ? (
                 <Loader2 className="animate-spin mr-2" />
               ) : (

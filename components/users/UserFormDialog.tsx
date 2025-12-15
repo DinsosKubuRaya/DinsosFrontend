@@ -108,25 +108,25 @@ export function UserFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
           {/* FOTO PROFIL (Hanya saat Edit) */}
           {editingUser && (
-            <div className="flex flex-col items-center gap-3 mb-2">
+            <div className="flex flex-col items-center gap-2 sm:gap-3 mb-2">
               <div
                 className="relative group cursor-pointer"
                 onClick={() => fileInputRef.current?.click()}
               >
-                <Avatar className="h-24 w-24 border-4 border-background shadow-lg">
+                <Avatar className="h-20 w-20 sm:h-24 sm:w-24 border-4 border-background shadow-lg">
                   <AvatarImage
                     src={previewUrl || ""}
                     className="object-cover"
                   />
-                  <AvatarFallback className="bg-primary/10 text-primary text-2xl font-bold">
+                  <AvatarFallback className="bg-primary/10 text-primary text-xl sm:text-2xl font-bold">
                     {getInitials(formData.name || "U")}
                   </AvatarFallback>
                 </Avatar>
                 <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Camera className="h-8 w-8 text-white" />
+                  <Camera className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
                 </div>
                 <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground p-1.5 rounded-full shadow-md border-2 border-background">
                   <Camera className="h-3.5 w-3.5" />

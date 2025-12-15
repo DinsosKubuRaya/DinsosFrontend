@@ -87,12 +87,13 @@ export function DashboardSidebar({
   return (
     <aside
       className={`
-        fixed lg:sticky top-16 left-0 z-50 h-[calc(100vh-4rem)] w-64 
+        fixed lg:sticky top-16 left-0 z-50 h-[calc(100vh-4rem)] w-64 lg:w-72
         border-r border-border/60 bg-card transition-transform duration-300 ease-in-out flex flex-col shadow-[1px_0_10px_0_rgba(0,0,0,0.01)]
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
       `}
     >
-      <div className="flex-1 overflow-y-auto py-6 space-y-6 scrollbar-hide">
+      <div className="flex-1 overflow-y-auto py-6 space-y-6 scrollbar-hide pb-safe">
+        {/*Add pb-safe for mobile*/}
         {/* Menu Utama */}
         <div className="space-y-1">
           {commonNavigation.map((item) => (

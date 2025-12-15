@@ -1,7 +1,7 @@
 "use client";
 
 import { Input } from "@/components/ui/input";
-import { Search, Calendar, FilterX } from "lucide-react";
+import { Search, Calendar, FilterX, User } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -18,6 +18,10 @@ interface DocumentFilterProps {
   setYear: (value: string) => void;
   month: string;
   setMonth: (value: string) => void;
+  userFilter?: string;
+  setUserFilter?: (value: string) => void;
+  users?: Array<{ id: string; name: string }>;
+  showUserFilter?: boolean;
 }
 
 export function DocumentFilter({
@@ -27,6 +31,10 @@ export function DocumentFilter({
   setYear,
   month,
   setMonth,
+  userFilter = "all",
+  setUserFilter,
+  users = [],
+  showUserFilter = false,
 }: DocumentFilterProps) {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 6 }, (_, i) =>
@@ -52,6 +60,7 @@ export function DocumentFilter({
     setSearchTerm("");
     setYear("all");
     setMonth("all");
+    if (setUserFilter) setUserFilter("all");
   };
 
   return (
@@ -67,10 +76,28 @@ export function DocumentFilter({
         />
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap md:flex-nowrap">
+        {/* Filter User (hanya untuk staff monitoring) */}
+        {showUserFilter && setUserFilter && (
+          <Select value={userFilter} onValueChange={setUserFilter}>
+            <SelectTrigger className="w-full sm:w-40 md:w-[180px] h-11 rounded-xl border-transparent bg-muted/30 focus:bg-background focus:border-primary/20">
+              <User className="mr-2 h-4 w-4 text-muted-foreground opacity-70" />
+              <SelectValue placeholder="Semua Staff" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl border-border/60 shadow-lg max-h-[300px]">
+              <SelectItem value="all">Semua Staff</SelectItem>
+              {users.map((u) => (
+                <SelectItem key={u.id} value={u.id}>
+                  {u.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
         {/* Filter Bulan */}
         <Select value={month} onValueChange={setMonth}>
-          <SelectTrigger className="w-[140px] h-11 rounded-xl border-transparent bg-muted/30 focus:bg-background focus:border-primary/20">
+          <SelectTrigger className="w-full sm:w-[140px] h-11 rounded-xl border-transparent bg-muted/30 focus:bg-background focus:border-primary/20">
             <Calendar className="mr-2 h-4 w-4 text-muted-foreground opacity-70" />
             <SelectValue placeholder="Bulan" />
           </SelectTrigger>
@@ -86,7 +113,7 @@ export function DocumentFilter({
 
         {/* Filter Tahun */}
         <Select value={year} onValueChange={setYear}>
-          <SelectTrigger className="w-[110px] h-11 rounded-xl border-transparent bg-muted/30 focus:bg-background focus:border-primary/20">
+          <SelectTrigger className="w-full sm:w-[110px] h-11 rounded-xl border-transparent bg-muted/30 focus:bg-background focus:border-primary/20">
             <SelectValue placeholder="Tahun" />
           </SelectTrigger>
           <SelectContent className="rounded-xl border-border/60 shadow-lg">
@@ -100,7 +127,10 @@ export function DocumentFilter({
         </Select>
 
         {/* Reset Button */}
-        {(searchTerm || year !== "all" || month !== "all") && (
+        {(searchTerm ||
+          year !== "all" ||
+          month !== "all" ||
+          userFilter !== "all") && (
           <Button
             variant="ghost"
             size="icon"

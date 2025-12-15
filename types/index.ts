@@ -12,6 +12,7 @@ export type User = {
   UpdatedAt?: string;
 };
 
+
 export interface ActivityLog {
   id: string;
   user_id: string | null;

@@ -49,6 +49,7 @@ export function NotificationBell() {
     if (!user) return;
     const apiUrl =
       process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
+    // process.env.NEXT_PUBLIC_API_URL || "http://10.10.1.104:8080/api";
     const wsBaseUrl = apiUrl.replace("http", "ws").replace("/api", "");
     const wsUrl = `${wsBaseUrl}/ws/notifications?user_id=${user.ID || user.id}`;
 
@@ -87,6 +88,14 @@ export function NotificationBell() {
       }
       setIsOpen(false);
       if (notification.link) {
+        if (
+          notification.link.startsWith("http://") ||
+          notification.link.startsWith("https://")
+        ) {
+          window.open(notification.link, "_blank");
+          return;
+        }
+
         let targetLink = notification.link;
         if (!targetLink.startsWith("/")) targetLink = "/" + targetLink;
         if (!targetLink.startsWith("/dashboard"))
@@ -128,7 +137,7 @@ export function NotificationBell() {
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className="w-80 rounded-2xl shadow-xl border-border/60 p-0 overflow-hidden"
+        className="w-[95vw] max-w-[320px] sm:w-80 rounded-2xl shadow-xl border-border/60 p-0 overflow-hidden"
       >
         <DropdownMenuLabel className="flex justify-between items-center p-4 bg-muted/20 border-b border-border/40">
           <div className="flex items-center gap-2">
@@ -152,7 +161,7 @@ export function NotificationBell() {
           )}
         </DropdownMenuLabel>
 
-        <div className="max-h-[350px] overflow-y-auto scrollbar-thin">
+        <div className="max-h-[50vh] sm:max-h-[350px] overflow-y-auto scrollbar-thin">
           {isLoading && notifications.length === 0 ? (
             <div className="py-8 text-center text-sm text-muted-foreground">
               Memuat...

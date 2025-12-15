@@ -45,17 +45,17 @@ export function ActivityLogTable({ logs }: ActivityLogTableProps) {
   };
 
   return (
-    <div className="rounded-2xl border border-border/40 bg-card shadow-sm overflow-hidden">
+    <div className="hidden md:block rounded-2xl border border-border/40 bg-card shadow-sm overflow-hidden">
       <Table>
         <TableHeader className="bg-muted/30">
           <TableRow className="hover:bg-transparent border-b border-border/40">
-            <TableHead className="w-[180px] pl-6 font-semibold text-muted-foreground">
+            <TableHead className="w-[140px] md:w-[180px] lg:w-[200px] pl-6 font-semibold text-muted-foreground">
               Waktu
             </TableHead>
-            <TableHead className="w-[200px] font-semibold text-muted-foreground">
+            <TableHead className="w-[150px] md:w-[180px] lg:w-[200px] font-semibold text-muted-foreground">
               Pengguna
             </TableHead>
-            <TableHead className="w-[120px] font-semibold text-muted-foreground">
+            <TableHead className="w-[100px] md:w-[120px] font-semibold text-muted-foreground">
               Aksi
             </TableHead>
             <TableHead className="font-semibold text-muted-foreground">
