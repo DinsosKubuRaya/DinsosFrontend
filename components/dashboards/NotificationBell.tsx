@@ -48,9 +48,10 @@ export function NotificationBell() {
   useEffect(() => {
     if (!user) return;
     const apiUrl =
-      process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
+      process.env.NEXT_PUBLIC_API_URL ||
+      "https://dinsosbackend-production.up.railway.app/api";
     // process.env.NEXT_PUBLIC_API_URL || "http://10.10.1.104:8080/api";
-    const wsBaseUrl = apiUrl.replace("http", "ws").replace("/api", "");
+    const wsBaseUrl = apiUrl.replace("https?", "ws").replace("/api", "");
     const wsUrl = `${wsBaseUrl}/ws/notifications?user_id=${user.ID || user.id}`;
 
     const connectWebSocket = () => {

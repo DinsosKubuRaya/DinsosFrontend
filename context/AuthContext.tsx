@@ -53,7 +53,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const data = await authAPI.login(username, password);
       if (data.token) {
-        Cookies.set("access_token", data.token, { expires: 7 });
+        Cookies.set("access_token", data.token, {
+          expires: 7,
+          sameSite: "lax",
+          secure: window.location.protocol === "https:",
+        });
       }
       if (data.user) {
         setUser(data.user);
