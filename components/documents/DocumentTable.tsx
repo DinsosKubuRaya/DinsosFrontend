@@ -67,7 +67,6 @@ export function DocumentTable({
       await onDownload(doc);
       toast.success("File berhasil diunduh!");
     } catch (error) {
-      console.error("Download error:", error);
       toast.error("Gagal mengunduh file");
     } finally {
       setDownloading(null);

@@ -72,7 +72,6 @@ export default function EditDocumentPage({
           });
         }
       } catch (error) {
-        console.error("Error fetching document:", error);
         toast.error(
           "Gagal memuat dokumen. Mungkin ID salah atau sudah dihapus."
         );
@@ -142,7 +141,6 @@ export default function EditDocumentPage({
       toast.success("Dokumen berhasil diperbarui!");
       router.push("/dashboard/documents");
     } catch (error) {
-      console.error("Error updating:", error);
       toast.error("Gagal update dokumen", {
         description: getErrorMessage(error),
       });
@@ -255,7 +253,11 @@ export default function EditDocumentPage({
               </div>
             )}
 
-            <Button type="submit" disabled={loading} className="w-full mt-4 sm:mt-6">
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full mt-4 sm:mt-6"
+            >
               {loading ? (
                 <Loader2 className="animate-spin mr-2" />
               ) : (

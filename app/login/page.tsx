@@ -9,6 +9,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import Image from "next/image";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/lib/api";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -26,8 +27,7 @@ export default function LoginPage() {
         description: "Selamat datang kembali!",
       });
     } catch (err: unknown) {
-      const msg =
-        err instanceof Error ? err.message : "Username atau Password salah.";
+      const msg = getErrorMessage(err);
       toast.error("Login Gagal", { description: msg });
     } finally {
       setLoading(false);
@@ -107,7 +107,7 @@ export default function LoginPage() {
         </Card>
 
         <p className="text-center text-xs text-muted-foreground mt-8">
-          &copy; {new Date().getFullYear()} Dinas Sosial Kabupaten Kubu Raya
+          &copy; {new Date().getFullYear()} Sekretariat Dinas Sosial
         </p>
       </div>
     </div>

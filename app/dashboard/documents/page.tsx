@@ -68,7 +68,7 @@ export default function DocumentsPage() {
         }))
       );
     } catch (error) {
-      console.error("Failed to fetch users for filter:", error);
+      throw error;
     }
   };
 

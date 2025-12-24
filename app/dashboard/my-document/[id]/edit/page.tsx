@@ -45,7 +45,6 @@ export default function EditMyDocumentPage({
           });
         }
       } catch (error) {
-        console.error("Error fetching document:", error);
         toast.error("Gagal memuat data dokumen.");
         router.push("/dashboard/my-document");
       } finally {
@@ -94,7 +93,6 @@ export default function EditMyDocumentPage({
       toast.success("Dokumen berhasil diperbarui!");
       router.push("/dashboard/my-document");
     } catch (error) {
-      console.error("Error updating:", error);
       toast.error("Gagal update dokumen", {
         description: getErrorMessage(error),
       });

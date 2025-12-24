@@ -63,9 +63,7 @@ export default function DashboardPage() {
           try {
             const users = await userAPI.getAll();
             userCount = Array.isArray(users) ? users.length : 0;
-          } catch (err) {
-            console.error("Gagal ambil data user", err);
-          }
+          } catch (err) {}
         }
 
         setStats({
@@ -117,7 +115,6 @@ export default function DashboardPage() {
         setRecentDocuments(mappedDocs);
       }
     } catch (error) {
-      console.error("Error fetching dashboard data:", error);
     } finally {
       setLoading(false);
     }
@@ -144,7 +141,6 @@ export default function DashboardPage() {
         toast.error("URL file tidak tersedia");
       }
     } catch (error) {
-      console.error("Download error:", error);
       toast.error("Gagal membuka file", {
         description:
           error instanceof Error ? error.message : "Terjadi kesalahan",
@@ -170,7 +166,6 @@ export default function DashboardPage() {
 
       fetchDashboardData();
     } catch (error) {
-      console.error("Error deleting document:", error);
       toast.error("Gagal menghapus dokumen");
     } finally {
       setDocToDelete(null);
@@ -275,7 +270,7 @@ export default function DashboardPage() {
 
       {/* Document Summary Widget - Admin Only */}
       {isAdmin && (
-      <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
+        <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
           <div className="lg:col-span-1">
             <DocumentSummaryWidget />
           </div>

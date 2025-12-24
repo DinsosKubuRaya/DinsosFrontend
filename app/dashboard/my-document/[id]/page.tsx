@@ -59,7 +59,6 @@ export default function DocumentStaffDetailPage() {
       const doc = await documentStaffAPI.getById(id);
       setDocumentData(doc);
     } catch (error) {
-      console.error("Error fetching document:", error);
       toast.error("Gagal memuat dokumen");
     } finally {
       setLoading(false);
@@ -107,7 +106,6 @@ export default function DocumentStaffDetailPage() {
       toast.success("Dokumen berhasil dihapus.");
       router.push("/dashboard/my-document");
     } catch (error) {
-      console.error("Error deleting document:", error);
       toast.error("Gagal menghapus dokumen.");
       setLoading(false);
     }
@@ -214,7 +212,11 @@ export default function DocumentStaffDetailPage() {
           {canDelete && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" disabled={loading} className="min-h-[44px]">
+                <Button
+                  variant="destructive"
+                  disabled={loading}
+                  className="min-h-[44px]"
+                >
                   {loading ? (
                     <Spinner className="mr-2 h-4 w-4" />
                   ) : (

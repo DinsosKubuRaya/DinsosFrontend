@@ -60,7 +60,7 @@ export default function DocumentDetailPage({
           const staffResponse = await documentStaffAPI.getById(id);
           setDocument({ ...staffResponse, source: "staff" });
         } catch (innerErr) {
-          console.error("Gagal mengambil dokumen");
+          throw innerErr;
         }
       }
     } catch (error) {

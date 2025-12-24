@@ -33,7 +33,7 @@ export function DocumentSummaryWidget() {
       const data = await documentAPI.getSummary();
       setSummary(data);
     } catch (error) {
-      console.error("Failed to fetch document summary:", error);
+      throw error;
     } finally {
       setLoading(false);
     }

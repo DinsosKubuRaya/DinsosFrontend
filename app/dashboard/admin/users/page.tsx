@@ -52,7 +52,6 @@ export default function AdminUsersPage() {
       const data = await userAPI.getAll();
       setUsers(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error(error);
       toast.error("Gagal memuat data user");
       setUsers([]);
     } finally {

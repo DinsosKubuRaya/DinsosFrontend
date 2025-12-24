@@ -41,7 +41,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const userData = await authAPI.me();
       setUser(userData);
     } catch (error) {
-      console.error("AuthContext: Failed to fetch user:", error);
       Cookies.remove("access_token");
       setUser(null);
     } finally {
@@ -65,7 +64,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await fetchUser();
       router.push("/dashboard");
     } catch (error: unknown) {
-      console.error("AuthContext: Login failed:", error);
       throw error;
     }
   };
@@ -74,7 +72,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await authAPI.logout();
     } catch (error) {
-      console.error("AuthContext: Logout API failed:", error);
     } finally {
       toast.info("Anda telah keluar.");
       Cookies.remove("access_token");

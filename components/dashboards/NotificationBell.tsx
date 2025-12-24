@@ -33,7 +33,6 @@ export function NotificationBell() {
       setNotifications(response.notifications || []);
       setUnreadCount(response.unread_count || 0);
     } catch (error) {
-      console.warn("Gagal mengambil notifikasi");
     } finally {
       setIsLoading(false);
     }
@@ -47,29 +46,37 @@ export function NotificationBell() {
 
   useEffect(() => {
     if (!user) return;
-    const apiUrl =
-      process.env.NEXT_PUBLIC_API_URL ||
-      "https://dinsosbackend-production.up.railway.app/api";
-    // process.env.NEXT_PUBLIC_API_URL || "http://10.10.1.104:8080/api";
-    const wsBaseUrl = apiUrl.replace("https?", "ws").replace("/api", "");
-    const wsUrl = `${wsBaseUrl}/ws/notifications?user_id=${user.ID || user.id}`;
-
+    const wsBaseUrl =
+      process.env.NEXT_PUBLIC_WS_URL ||
+      (() => {
+        const apiUrl =
+          process.env.NEXT_PUBLIC_API_URL ||
+          "https://dinsosbackend-production.up.railway.app/api";
+        const wsProtocol = apiUrl.startsWith("https") ? "wss" : "ws";
+        const hostname = apiUrl
+          .replace(/^https?:\/\//, "")
+          .replace(/\/api$/, "");
+        return `${wsProtocol}://${hostname}`;
+      })();
+    const wsUrl = `${wsBaseUrl}/ws/notifications?user_id=${user.id}`;
     const connectWebSocket = () => {
       if (ws.current) ws.current.close();
-      const socket = new WebSocket(wsUrl);
 
-      socket.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          toast.info("Notifikasi Baru", { description: data.message });
-          fetchNotifications();
-        } catch (e) {
-          console.error("WS Parse Error", e);
-        }
-      };
-      ws.current = socket;
+      try {
+        const socket = new WebSocket(wsUrl);
+        socket.onopen = () => {};
+        socket.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            toast.info("Notifikasi Baru", { description: data.message });
+            fetchNotifications();
+          } catch (e) {}
+        };
+        socket.onerror = () => {};
+        socket.onclose = () => {};
+        ws.current = socket;
+      } catch (error) {}
     };
-
     connectWebSocket();
     return () => {
       if (ws.current) ws.current.close();
