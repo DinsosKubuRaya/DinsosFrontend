@@ -41,7 +41,7 @@ interface UpdateUserData {
 }
 
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://dinsosbackend-production.up.railway.app";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://dinsosbackend-production.up.railway.app/api";
 
 // const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
 

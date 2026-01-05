@@ -51,7 +51,7 @@ export function NotificationBell() {
       (() => {
         const apiUrl =
           process.env.NEXT_PUBLIC_API_URL ||
-          "https://dinsosbackend-production.up.railway.app";
+          "https://dinsosbackend-production.up.railway.app/api";
         const wsProtocol = apiUrl.startsWith("https") ? "wss" : "ws";
         const hostname = apiUrl
           .replace(/^https?:\/\//, "")
