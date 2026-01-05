@@ -107,7 +107,7 @@ export default function LoginPage() {
         </Card>
 
         <p className="text-center text-xs text-muted-foreground mt-8">
-          &copy; {new Date().getFullYear()} Sekretariat Dinas Sosial
+          &copy; {new Date().getFullYear()} Sekretariat Dinas Sosial Kubu Raya
         </p>
       </div>
     </div>
