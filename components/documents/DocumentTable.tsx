@@ -163,8 +163,10 @@ export function DocumentTable({
                       {doc.user?.name || "User"}
                     </span>
                     <span className="text-[10px] text-muted-foreground capitalize">
-                      {doc.user?.role ||
-                        (isOfficialDoc(doc) ? "Admin" : "Staff")}
+                      {doc.user?.role === "staff"
+                        ? "User"
+                        : doc.user?.role ||
+                          (isOfficialDoc(doc) ? "Admin" : "User")}
                     </span>
                   </div>
                 </div>

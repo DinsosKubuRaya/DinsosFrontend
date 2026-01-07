@@ -157,7 +157,7 @@ export function DashboardHeader({
                       {user?.name?.split(" ")[0]}
                     </span>
                     <span className="text-[10px] text-muted-foreground capitalize leading-none mt-0.5">
-                      {user?.role}
+                      {user?.role === "staff" ? "user" : user?.role}
                     </span>
                   </div>
                   <ChevronDown className="h-3 w-3 text-muted-foreground opacity-50 hidden md:block" />

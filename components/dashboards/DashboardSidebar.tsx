@@ -106,7 +106,7 @@ export function DashboardSidebar({
           <div className="space-y-1">
             <div className="px-7 mb-2 mt-2">
               <p className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-widest">
-                Area Staff
+                Area User
               </p>
             </div>
             {staffNavigation.map((item) => (
